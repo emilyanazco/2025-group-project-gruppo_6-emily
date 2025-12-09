@@ -1,14 +1,130 @@
 html, body {
   margin: 0;
   padding: 0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden; /* Evito lo scroll orizzontale */
+  
+  background-image: url('carta.jpg'); 
+  background-size: cover; 
+  background-position: center;
+  background-attachment: fixed;
 }
-
-
 
 canvas {
   display: block;
+  position: fixed; 
+  top: 0;
+  left: 0;
+  z-index: 1;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Stile per la Navbar */
+.navbar {
+  background-color: #F2F0E5; 
+  width: 100%;
+  padding: 18px clamp(10px, 4vw, 48px); 
+  position: sticky; 
+  top: 0;
+  z-index: 1000;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+/* Contenitore interno per limitare la larghezza e allineare a destra */
+.nav-container {
+  max-width: 1200px; 
+  width: 100%;
+  margin: 0 auto; 
+  display: flex;
+  justify-content: flex-end; 
+}
+
+.nav-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: clamp(60px, 2.5vw, 100px); 
+  flex-wrap: nowrap; 
+}
+
+.nav-item a {
+  text-decoration: none;
+  color: var(--text);
+  font-weight: 500;
+  font-size: 1.3rem; 
+  transition: color 0.2s ease;
+  font-family: "cormorant-garamond", serif;
+  white-space: nowrap; 
+}
+
+.nav-item a:hover {
+  color: #8f3b56; 
+}
+
+@media (max-width: 600px) {
+  .nav-container {
+    justify-content: center;
+  }
+}
+
+.back-btn {
+    position: fixed; /* La fisso rispetto alla finestra */
+    top: 65px;       /* Distanza dall'alto */
+    left: 30px;      /* Distanza da sinistra */
+    
+    z-index: 2000;   /* Più alto della Navbar (1000) e del Canvas (1) */
+    
+    color: #000;     /* Colore della freccia */
+    cursor: pointer; /* Cambio il cursore in manina */
+    
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    transition: transform 0.2s ease, color 0.2s ease;
+}
+
+/* Effetto Hover */
+.back-btn:hover {
+    transform: translateX(-5px); /* Si sposta leggermente a sinistra */
+    color: #8f3b56; /* Cambia colore  */
+}
+
+/* Adattamento per schermi piccoli (opzionale) */
+@media (max-width: 600px) {
+    .back-btn {
+        top: 15px;
+        left: 15px;
+    }
+    .back-btn svg {
+        width: 30px;
+        height: 30px;
+    }
+}
+
+.bottom-decoration-container {
+  position: fixed;   /* Fisso in basso */
+  bottom: 0;
+  left: 0;
+  width: 100%;       /* Larghezza totale dello schermo */
+  
+  height: 150px;     
+
+  z-index: 2;        /* Livello sopra il canvas */
+  pointer-events: none; /* Click passano attraverso */
+
+
+  background-image: url('sfondo.png'); /* Percorso dell'immagine */
+  background-position: bottom left;    /* Allineo in basso a sinistra */
+  background-repeat: repeat-x;         /* Ripete l'immagine orizzontalmente */
+
+  /* Imposto la larghezza di ogni singola immagine al 50% del contenitore.
+     'auto' mantiene le proporzioni dell'altezza. 50% + 50% = due immagini affiancate. */
+  background-size: 10% auto;
 }
