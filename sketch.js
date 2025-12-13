@@ -4,7 +4,7 @@ let selectedArea = "south america";
 let menuOpen = false;
 let petalShapes = {};
 let centerShapes = {};
-
+let customFont;
 
 const COLORS = {
   Animalia: "#B96A82",
@@ -66,6 +66,8 @@ let clickedCause = null;
 let scrollY = 0; 
 
 function preload() {
+  customFont = loadFont("fonts/CormorantGaramond-VariableFont_wght.ttf");
+
   data_aree    = loadTable("data/data_aree.csv", "csv", "header");
   data_animali = loadTable("data/data_animali.csv", "csv", "header");
   data_piante  = loadTable("data/data_piante.csv", "csv", "header");
@@ -74,8 +76,17 @@ function preload() {
 }
 
 function setup() {
-  createCanvas(windowWidth, windowHeight);
-  textFont("Georgia");
+  // Calcolo l’altezza totale necessaria in base al layout dei fiori
+  let marginTop = 280;     // margine superiore
+  let spacingY = 400;      // distanza verticale tra le righe
+  let rows = 2;            // hai 4 regni disposti in 2 righe
+
+  // Altezza totale = margine superiore + (numero righe - 1) * spacingY + margine inferiore
+  let totalHeight = marginTop + (rows - 1) * spacingY + 600; 
+  // il +600 è un margine extra per titoli, overlay e decorazione in basso
+
+  createCanvas(windowWidth, totalHeight);
+  textFont(customFont); // usa il font caricato
 
   for (let r = 0; r < data_aree.getRowCount(); r++) {
     let area = data_aree.getString(r, 0);
@@ -88,7 +99,7 @@ function setup() {
     petalShapes[regno] = [];
     for (let i = 0; i < causes.length; i++) {
       let layers = [];
-      for (let l = 0; l < 12; l++) { // 12 velature per petalo
+      for (let l = 0; l < 12; l++) {
         let shape = [];
         for (let a = 0; a < TWO_PI; a += PI/8) {
           shape.push({
@@ -104,7 +115,6 @@ function setup() {
       petalShapes[regno].push(layers);
     }
 
-    // centro del fiore
     centerShapes[regno] = [];
     for (let l = 0; l < 8; l++) {
       let shape = [];
@@ -121,45 +131,47 @@ function setup() {
   }
 }
 
+function windowResized() {
+  let marginTop = 280;
+  let spacingY = 400;
+  let rows = 2;
+  let totalHeight = marginTop + (rows - 1) * spacingY + 600;
+  resizeCanvas(windowWidth, totalHeight);
+}
+
+
 
 function draw() {
   clear();
   push();
   translate(0, scrollY); // scroll del contenuto
 
-  fill(0);
-  textAlign(RIGHT, TOP);
-  textSize(28);
-  text("Cause di rischio estinzione — " + toTitleCase(selectedArea), width - 50, 70);
-
+  // nuovo titolo + menu
+  drawHeader();
 
   drawKingdomFlowers();
 
-  // Se c'è un click, overlay 
   if (clickedCause) drawOverlay(clickedCause);
 
   pop(); // Fine dello scroll
     
-  drawDropdownMenu();
   drawTooltip();
 }
+
 
 function drawKingdomFlowers() {
   let kingdoms = ["Animalia", "Plantae", "Fungi", "Chromista"];
   
-  let gapX = 650;               
-  let topPairX = 300;  
-  let topPairY = 300;  
-  let bottomPairX = 700; 
-  let bottomPairY = 650; 
-  
   let centerRadius = 20;        
   let angleStep = TWO_PI / causes.length;
 
-  let plantaeX = topPairX + gapX;
-  let fungiX = bottomPairX;
-  let distDiag = dist(plantaeX, topPairY, fungiX, bottomPairY);
-  let maxPossibleRadius = distDiag / 2 - 15; 
+  // Layout a tabella 2x2, più in basso e con più margine a sinistra
+  let marginLeft = 260;   // margine sinistro aumentato
+  let marginTop = 280;    // margine superiore → fiori più in basso
+  let spacingX = 420;     // distanza orizzontale
+  let spacingY = 400;     // distanza verticale
+
+  let maxPossibleRadius = min(spacingX, spacingY) / 2 - 40; // ridotto per scala più compatta
   let maxPetalLengthLimit = maxPossibleRadius - centerRadius;
 
   let minPetalMidRadius = centerRadius + 60; 
@@ -172,7 +184,6 @@ function drawKingdomFlowers() {
     let row = getRowByArea(dataset, selectedArea);
     if (!row) continue;
 
-    // controlla se ci sono dati > 0
     let hasData = false;
     let maxValInRow = 0;
     for (let c of causes) {
@@ -185,12 +196,11 @@ function drawKingdomFlowers() {
     if (!hasData) continue; 
     if (maxValInRow === 0) maxValInRow = 1;
 
-    let col = k % 2; 
+    // posizione in griglia 2x2
+    let col = k % 2;
     let rowIdx = floor(k / 2);
-    let startX = (rowIdx === 0) ? topPairX : bottomPairX;
-    let startY = (rowIdx === 0) ? topPairY : bottomPairY;
-    let centerX = startX + col * gapX;
-    let centerY = startY;
+    let centerX = marginLeft + col * spacingX;
+    let centerY = marginTop + rowIdx * spacingY;
 
     let baseColor = color(COLORS[regno]);
 
@@ -203,26 +213,25 @@ function drawKingdomFlowers() {
       let val = int(row.get(causa));
       if (val === 0) continue; 
       
-      let petalLength = map(val, 0, maxValInRow, 100, maxPetalLengthLimit);
+      // curva logaritmica + scala ridotta
+      let normVal = log(val + 1) / log(maxValInRow + 1);
+      let petalLength = (80 + normVal * (maxPetalLengthLimit * 1.5 - 80)) * 0.8;
+
       let angle = i * angleStep - HALF_PI; 
 
       let isFlowerHovered = (hoveredCause && hoveredCause.kingdom === regno);
       let isThisPetalHovered = (isFlowerHovered && hoveredCause.cause === causa);
       let isGlobalSameCauseFocus = (hoveredCause && hoveredCause.cause === causa);
 
-      // Regola di sbiadimento:
       let shouldFade =
         hoveredCause && (
-          // fiore hoverato → sbiadisci se non è il petalo hoverato
           (isFlowerHovered && !isThisPetalHovered) ||
-          // altri fiori → sbiadisci se non è la causa globale
           (!isFlowerHovered && !isGlobalSameCauseFocus)
         );
 
       push();
       rotate(angle);
 
-      // petalo hoverato “sbuca fuori”
       if (isThisPetalHovered) {
         scale(1.1);
         translate(0, -8);
@@ -266,7 +275,7 @@ function drawKingdomFlowers() {
       pop();
     }
 
-    // --- PISTILLO MIGLIORATO ---
+    // --- PISTILLO ---
     for (let shape of centerShapes[regno]) {
       beginShape();
       for (let p of shape) {
@@ -308,30 +317,24 @@ function drawKingdomFlowers() {
 }
 
 
-
-
 function mouseMoved() {
   hoveredCause = null;
 
   let kingdoms = ["Animalia", "Plantae", "Fungi", "Chromista"];
 
-  // layout identico a drawKingdomFlowers
-  let gapX = 650;               
-  let topPairX = 300;  
-  let topPairY = 300;  
-  let bottomPairX = 700; 
-  let bottomPairY = 650; 
-  
-  let centerRadius = 20;        
+  let centerRadius = 20;
   let angleStep = TWO_PI / causes.length;
 
-  let plantaeX = topPairX + gapX;
-  let fungiX = bottomPairX;
-  let distDiag = dist(plantaeX, topPairY, fungiX, bottomPairY);
-  let maxPossibleRadius = distDiag / 2 - 15; 
+  // stessi parametri del draw
+  let marginLeft = 260;
+  let marginTop = 280;
+  let spacingX = 420;
+  let spacingY = 400;
+
+  let maxPossibleRadius = min(spacingX, spacingY) / 2 - 40;
   let maxPetalLengthLimit = maxPossibleRadius - centerRadius;
 
-  let minPetalMidRadius = centerRadius + 60; 
+  let minPetalMidRadius = centerRadius + 60;
   let availableArc = (minPetalMidRadius * TWO_PI) / causes.length;
   let dynamicPetalWidth = min(65, availableArc * 0.95);
 
@@ -340,51 +343,58 @@ function mouseMoved() {
 
   for (let k = 0; k < kingdoms.length; k++) {
     let regno = kingdoms[k];
-    let col = k % 2; 
-    let rowIdx = floor(k / 2);
-
-    let startX = (rowIdx === 0) ? topPairX : bottomPairX;
-    let startY = (rowIdx === 0) ? topPairY : bottomPairY;
-    let centerX = startX + col * gapX;
-    let centerY = startY;
-
     let dataset = getDatasetByKingdom(regno);
     let row = getRowByArea(dataset, selectedArea);
     if (!row) continue;
 
     let maxValInRow = 0;
     for (let c of causes) {
-      let val = int(row.get(c));
-      if (val > maxValInRow) maxValInRow = val;
+      let v = int(row.get(c));
+      if (v > maxValInRow) maxValInRow = v;
     }
     if (maxValInRow === 0) maxValInRow = 1;
+
+    // posizione in griglia 2x2
+    let col = k % 2;
+    let rowIdx = floor(k / 2);
+    let centerX = marginLeft + col * spacingX;
+    let centerY = marginTop + rowIdx * spacingY;
+
+    // pre-filtraggio: se troppo lontano dal fiore, salta
+    if (dist(mx, my, centerX, centerY) > maxPossibleRadius + 160) continue;
 
     for (let i = 0; i < causes.length; i++) {
       let causa = causes[i];
       let val = int(row.get(causa));
-      if (val === 0) continue; 
+      if (val === 0) continue;
 
-      let petalLength = map(val, 0, maxValInRow, 100, maxPetalLengthLimit);
+      // stessa formula logaritmica + scala ridotta
+      let normVal = log(val + 1) / log(maxValInRow + 1);
+      let petalLength = (80 + normVal * (maxPetalLengthLimit * 1.5 - 80)) * 0.8;
+
       let petalAngle = i * angleStep - HALF_PI;
 
+      // trasformazione in coordinate locali del petalo
       let dx = mx - centerX;
       let dy = my - centerY;
-      let localX = dx * cos(-petalAngle) - dy * sin(-petalAngle);
-      let localY = dx * sin(-petalAngle) + dy * cos(-petalAngle);
+      let cosA = cos(-petalAngle), sinA = sin(-petalAngle);
+      let localX = dx * cosA - dy * sinA;
+      let localY = dx * sinA + dy * cosA;
 
-      // offset identico al draw
+      // ellisse di hit-test identica al draw
       let baseOffset = centerRadius * 0.6;
       let ellipseCenterX = 0;
       let ellipseCenterY = baseOffset + petalLength / 2;
-      let radiusX = dynamicPetalWidth / 2; 
+      let radiusX = dynamicPetalWidth / 2;
       let radiusY = petalLength / 2;
 
-      let part1 = sq(localX - ellipseCenterX) / sq(radiusX);
-      let part2 = sq(localY - ellipseCenterY) / sq(radiusY);
+      const tol = 1.05; // leggera tolleranza
+      let part1 = sq(localX - ellipseCenterX) / sq(radiusX * tol);
+      let part2 = sq(localY - ellipseCenterY) / sq(radiusY * tol);
 
       if (part1 + part2 <= 1) {
         hoveredCause = { kingdom: regno, cause: causa, value: val };
-        return; 
+        return;
       }
     }
   }
@@ -493,47 +503,52 @@ function drawOverlay(causeKey) {
 }
 
 function mousePressed() {
-  // --- PRIORITÀ 1: GESTIONE POPUP (Overlay) ---
+  // --- PRIORITÀ 1: GESTIONE POPUP ---
   if (clickedCause) {
-    // Coordinate del bottone "Chiudi" (identiche a quelle usate in drawOverlay)
-    // width/2 - 40, height/2 + 80, larghezza 80, altezza 30
     if (mouseX > width/2 - 40 && mouseX < width/2 + 40 &&
         mouseY > height/2 + 80 && mouseY < height/2 + 110) {
-      clickedCause = null; // Chiudi il popup
+      clickedCause = null;
     }
-    // IMPORTANTE: Se il popup è aperto, blocchiamo qualsiasi altro click (fiori o menu)
-    return; 
+    return;
   }
 
   // --- PRIORITÀ 2: GESTIONE MENU ---
-  // Testata del menu
+  const sz = constrain(width * 0.05, 30, 60);
+  let x = width * 0.55;
+  let y = sz * 1.5;
+  let titolo2 = "estinzione in";
+  let titoloWidth = textWidth(titolo2 + " ");
   let menuW = 220;
-  let menuX = width - 50 - menuW; 
-  let menuY = 120; 
+  let menuH = sz * 0.8;
+  let menuX = x + titoloWidth;
+  let menuY = y + sz * 1.2;
 
-  if (mouseX > menuX && mouseX < menuX + menuW && mouseY > menuY && mouseY < menuY + 36) {
+  // click sulla testata del menu
+  if (mouseX > menuX && mouseX < menuX + menuW &&
+      mouseY > menuY && mouseY < menuY + menuH) {
     menuOpen = !menuOpen;
     return;
   }
 
-  // Voci del menu (se aperto)
+  // click sulle voci del menu
   if (menuOpen) {
     for (let i = 0; i < areas.length; i++) {
-      let iy = menuY + 36 + i * 32;
-      if (mouseX > menuX && mouseX < menuX + menuW && mouseY > iy && mouseY < iy + 32) {
+      let iy = menuY + menuH + i * (menuH * 0.9);
+      if (mouseX > menuX && mouseX < menuX + menuW &&
+          mouseY > iy && mouseY < iy + menuH * 0.9) {
         selectedArea = areas[i];
         menuOpen = false;
         return;
       }
     }
   }
-  
+
   // --- PRIORITÀ 3: GESTIONE FIORI ---
-  // Solo se non abbiamo cliccato nient'altro sopra
   if (hoveredCause) {
-    clickedCause = hoveredCause.cause; 
+    clickedCause = hoveredCause.cause;
   }
 }
+
 
 function getDatasetByKingdom(regno) {
     if (regno === "Animalia") return data_animali;
@@ -591,3 +606,59 @@ function drawTooltip() {
     text(txt, x + 10, y + h/2);
   }
 }
+
+function drawHeader() {
+  const sz = constrain(width * 0.05, 30, 60);
+  textSize(sz);
+  textAlign(LEFT, TOP);
+  textStyle(NORMAL); // testo più leggero
+  fill(0);
+  textFont(customFont);
+
+  // posizione centro-destra
+  let x = width * 0.55;
+  let y = sz * 1.5;
+
+  // prima riga
+  text("Cause di rischio", x, y);
+
+  // seconda riga: "estinzione in" + menu
+  let titolo2 = "estinzione in";
+  let titoloWidth = textWidth(titolo2 + " ");
+
+  text(titolo2, x, y + sz * 1.2);
+
+  // menu subito affianco
+  let menuW = 220;
+  let menuH = sz * 0.8;
+  let menuX = x + titoloWidth;
+  let menuY = y + sz * 1.2;
+
+  fill(BG);
+  noStroke();
+  rect(menuX, menuY, menuW, menuH, 6);
+
+  fill(0);
+  textSize(sz * 0.6);
+  textAlign(LEFT, CENTER);
+  text(toTitleCase(selectedArea), menuX + 12, menuY + menuH/2);
+
+  // freccia del menu
+  textAlign(RIGHT, CENTER);
+  text(menuOpen ? "▴" : "▾", menuX + menuW - 10, menuY + menuH/2);
+
+  // voci del menu se aperto
+  if (menuOpen) {
+    for (let i = 0; i < areas.length; i++) {
+      let iy = menuY + menuH + i * (menuH * 0.9);
+      fill("#D6D2C8");
+      rect(menuX, iy, menuW, menuH * 0.9, 6);
+
+      fill(0);
+      textAlign(LEFT, CENTER);
+      text(toTitleCase(areas[i]), menuX + 12, iy + (menuH * 0.45));
+    }
+  }
+}
+
+

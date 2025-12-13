@@ -2,21 +2,40 @@ html, body {
   margin: 0;
   padding: 0;
   width: 100%;
-  height: 100%;
-  overflow-x: hidden; /* Evito lo scroll orizzontale */
-  
+  min-height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+
   background-image: url('carta.jpg'); 
   background-size: cover; 
   background-position: center;
   background-attachment: fixed;
+
+  padding-bottom: 150px; /* riserva spazio per la decorazione */
 }
 
 canvas {
   display: block;
-  position: fixed; 
+  position: absolute;
   top: 0;
   left: 0;
+  width: 100%;
   z-index: 1;
+}
+
+.bottom-decoration-container {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 150px;
+  z-index: 2;
+  pointer-events: none;
+
+  background-image: url('sfondo.png');
+  background-position: bottom left;
+  background-repeat: repeat-x;
+  background-size: 10% auto;
 }
 
 .container {
@@ -24,7 +43,7 @@ canvas {
   margin: 0 auto;
 }
 
-/* Stile per la Navbar */
+/* Navbar */
 .navbar {
   background-color: #F2F0E5; 
   width: 100%;
@@ -35,7 +54,6 @@ canvas {
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
-/* Contenitore interno per limitare la larghezza e allineare a destra */
 .nav-container {
   max-width: 1200px; 
   width: 100%;
@@ -73,58 +91,48 @@ canvas {
   }
 }
 
+/* Bottone indietro */
 .back-btn {
-    position: fixed; /* La fisso rispetto alla finestra */
-    top: 65px;       /* Distanza dall'alto */
-    left: 30px;      /* Distanza da sinistra */
-    
-    z-index: 2000;   /* Più alto della Navbar (1000) e del Canvas (1) */
-    
-    color: #000;     /* Colore della freccia */
-    cursor: pointer; /* Cambio il cursore in manina */
-    
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    
-    transition: transform 0.2s ease, color 0.2s ease;
+  position: fixed;
+  top: 65px;
+  left: 30px;
+  z-index: 2000;
+  color: #000;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease, color 0.2s ease;
 }
 
-/* Effetto Hover */
 .back-btn:hover {
-    transform: translateX(-5px); /* Si sposta leggermente a sinistra */
-    color: #8f3b56; /* Cambia colore  */
+  transform: translateX(-5px);
+  color: #8f3b56;
 }
 
-/* Adattamento per schermi piccoli (opzionale) */
 @media (max-width: 600px) {
-    .back-btn {
-        top: 15px;
-        left: 15px;
-    }
-    .back-btn svg {
-        width: 30px;
-        height: 30px;
-    }
+  .back-btn {
+    top: 15px;
+    left: 15px;
+  }
+  .back-btn svg {
+    width: 30px;
+    height: 30px;
+  }
 }
 
+/* Decorazione in basso */
 .bottom-decoration-container {
-  position: fixed;   /* Fisso in basso */
+  position: fixed;
   bottom: 0;
   left: 0;
-  width: 100%;       /* Larghezza totale dello schermo */
-  
-  height: 150px;     
+  width: 100%;
+  height: 150px;
+  z-index: 2;
+  pointer-events: none;
 
-  z-index: 2;        /* Livello sopra il canvas */
-  pointer-events: none; /* Click passano attraverso */
-
-
-  background-image: url('sfondo.png'); /* Percorso dell'immagine */
-  background-position: bottom left;    /* Allineo in basso a sinistra */
-  background-repeat: repeat-x;         /* Ripete l'immagine orizzontalmente */
-
-  /* Imposto la larghezza di ogni singola immagine al 50% del contenitore.
-     'auto' mantiene le proporzioni dell'altezza. 50% + 50% = due immagini affiancate. */
+  background-image: url('sfondo.png');
+  background-position: bottom left;
+  background-repeat: repeat-x;
   background-size: 10% auto;
 }
