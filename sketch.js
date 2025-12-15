@@ -63,7 +63,6 @@ const DESCRIZIONI_CAUSE = {
 let causes = [];
 let hoveredCause = null;
 let clickedCause = null;
-let scrollY = 0; 
 
 function preload() {
   customFont = loadFont("fonts/CormorantGaramond-VariableFont_wght.ttf");
@@ -142,20 +141,116 @@ function windowResized() {
 function draw() {
   clear();
 
-  // Header fisso
+  // 1. Header
   drawHeader();
 
-  // Legenda subito sotto al titolo
+  // 2. Legenda
   drawLegend();
 
-  // Contenuto scrollabile
-  push();
-  translate(0, scrollY);
+  // 3. Fiori
   drawKingdomFlowers();
+
+  // 4. Overlay
+  if (clickedCause) drawOverlay(clickedCause);
+
+  // 5. Tooltip
+  drawTooltip();
+
+  // 6. Menu sopra a tutto
+  if (menuOpen) drawDropdownMenu();
+}
+
+function drawHeader() {
+  push();
+  const sz = constrain(width * 0.05, 30, 60);
+  textFont(customFont);
+  textStyle(NORMAL);
+  fill(0);
+
+  const x = width * 0.63;
+  const y = sz * 1.2;
+
+  // Prima riga
+  textAlign(LEFT, TOP);
+  textSize(sz);
+  text("Cause di rischio", x, y);
+
+  // Seconda riga
+  const titoloY2 = y + sz * 1.2;
+  textSize(sz);
+  text("estinzione in", x, titoloY2);
+
+  // Terza riga: menu chiuso
+  const titoloY3 = titoloY2 + sz * 1.2;
+  const label = toTitleCase(selectedArea);
+
+  // Calcola larghezza massima tra label e voci
+  textSize(sz * 0.7);
+  let maxW = textWidth(label);
+  for (let area of areas) {
+    maxW = max(maxW, textWidth(toTitleCase(area)));
+  }
+  const menuW = maxW + 60;
+  const menuH = sz * 0.9;
+  const menuX = x;
+  const menuY = titoloY3;
+
+  // Rettangolo menu principale
+  noStroke();
+  fill('#F2F0E5');
+  rect(menuX, menuY, menuW, menuH, 10);
+
+  // Testo selezionato
+  fill(0);
+  textAlign(LEFT, CENTER);
+  textSize(sz * 0.7);
+  text(label, menuX + 12, menuY + menuH / 2);
+
+  // Freccetta
+  textAlign(RIGHT, CENTER);
+  textSize(sz * 0.6);
+  text(menuOpen ? "▲" : "▼", menuX + menuW - 12, menuY + menuH / 2);
+
   pop();
 
-  if (clickedCause) drawOverlay(clickedCause);
-  drawTooltip();
+  // Disegna voci del menu sopra a tutto
+  if (menuOpen) drawDropdownMenu(menuX, menuY, menuW, menuH, sz);
+}
+
+function drawDropdownMenu() {
+  const sz = constrain(width * 0.05, 30, 60);
+  const x = width * 0.63;
+  const titoloY2 = sz * 1.2 + sz * 1.2;
+  const titoloY3 = titoloY2 + sz * 1.2;
+
+  const label = toTitleCase(selectedArea);
+  textSize(sz * 0.7);
+
+  // larghezza fissa calcolata sul testo più lungo
+  let maxW = textWidth(label);
+  for (let area of areas) {
+    maxW = max(maxW, textWidth(toTitleCase(area)));
+  }
+  const menuW = maxW + 60;
+  const menuH = sz * 0.9;
+  const menuX = x;
+  const menuY = titoloY3;
+
+  // voci attaccate al rettangolo principale
+  for (let i = 0; i < areas.length; i++) {
+    const iy = menuY + menuH + i * menuH;
+    const ih = menuH;
+    const isHovered = mouseX > menuX && mouseX < menuX + menuW &&
+                      mouseY > iy && mouseY < iy + ih;
+
+    fill(isHovered ? "#BFBBAF" : "#F2F0E5"); // stesso colore della casella principale
+    rect(menuX, iy, menuW, ih, 6);
+
+    fill(0);
+    textAlign(LEFT, CENTER);
+    textSize(sz * 0.7);
+    text(toTitleCase(areas[i]), menuX + 12, iy + ih / 2);
+  }
 }
 
 function drawKingdomFlowers() {
@@ -267,6 +362,7 @@ function drawKingdomFlowers() {
       translate(0, baseDist + stagger); 
       rotate(-angle); 
       textSize(15); 
+      textAlign(CENTER, CENTER);
       let etichetta = LETTERE_CAUSE[causa] || causa; 
       fill(0);
       // textWeight(BOLD);
@@ -341,7 +437,7 @@ function mouseMoved() {
   let dynamicPetalWidth = min(65, availableArc * 0.95);
 
   let mx = mouseX;
-  let my = mouseY - scrollY;
+  let my = mouseY;
 
   for (let k = 0; k < kingdoms.length; k++) {
     let regno = kingdoms[k];
@@ -431,49 +527,53 @@ function mouseMoved() {
   }
 }
 
-function mouseWheel(event) {
-  scrollY -= event.delta; 
-}
-
 function mousePressed() {
-  // Se un popup è aperto (logica tua), gestiscilo qui e esci
+  // --- Gestione overlay aperto ---
   if (clickedCause) {
-    if (mouseX > width/2 - 40 && mouseX < width/2 + 40 &&
-        mouseY > height/2 + 80 && mouseY < height/2 + 110) {
+    // Se clicco sulla X dell'overlay → chiudi
+    if (overlayCloseBounds &&
+        dist(mouseX, mouseY, overlayCloseBounds.x, overlayCloseBounds.y) < overlayCloseBounds.size) {
       clickedCause = null;
+      return;
     }
+    // Se overlay è aperto, ignora altri click
     return;
   }
 
-  // --- MENU ---
+  // --- Gestione menu ---
   const sz = constrain(width * 0.05, 30, 60);
   const x = width * 0.63;
   const y = sz * 1.2;
   const titoloY2 = y + sz * 1.2;
   const titoloY3 = titoloY2 + sz * 1.2;
 
-  // Calcoli identici a drawHeader (ordine textSize → textWidth)
   textFont(customFont);
   textStyle(NORMAL);
 
   textSize(sz * 0.7);
   const label = toTitleCase(selectedArea);
-  const padding = 40;
-  const menuW = textWidth(label) + padding;
+  let maxW = textWidth(label);
+  for (let area of areas) {
+    maxW = max(maxW, textWidth(toTitleCase(area)));
+  }
+  const menuW = maxW + 60;
   const menuH = sz * 0.9;
-
-  textSize(sz);
-  const menuX = x + textWidth("in ") + 10;
+  const menuX = x;
   const menuY = titoloY3;
 
-  // Click sulla testata del menu (rettangolo + freccetta)
-  if (mouseX > menuX && mouseX < menuX + menuW &&
-      mouseY > menuY && mouseY < menuY + menuH) {
+  // Click sulla freccetta del menu
+  const arrowX1 = menuX + menuW - 24;
+  const arrowX2 = menuX + menuW;
+  const arrowY1 = menuY;
+  const arrowY2 = menuY + menuH;
+
+  if (mouseX > arrowX1 && mouseX < arrowX2 &&
+      mouseY > arrowY1 && mouseY < arrowY2) {
     menuOpen = !menuOpen;
     return;
   }
 
-  // Click sulle voci (stessa larghezza del menuW)
+  // Click sulle voci del menu
   if (menuOpen) {
     for (let i = 0; i < areas.length; i++) {
       const iy = menuY + menuH + i * menuH;
@@ -487,86 +587,70 @@ function mousePressed() {
     }
   }
 
-  // --- Click sui fiori (se presenti in questa pagina)
+  // --- Gestione click sui fiori ---
   if (hoveredCause) {
-    clickedCause = hoveredCause.cause;
+    clickedCause = hoveredCause.cause; // apre overlay
+    return;
   }
 }
 
-
-function drawDropdownMenu() {
-  // Calcolo la posizione basandomi sulla larghezza dello schermo
-  let menuW = 220;
-  let menuX = width - 50 - menuW; // Allineato a destra come il titolo (margine 50)
-  let menuY = 120; // Sotto il titolo
-  
-  fill(BG);
-  noStroke();
-  // Rettangolo principale
-  rect(menuX, menuY, menuW, 36, 6);
-  
-  fill(0);
-  textSize(14);
-  textAlign(LEFT, CENTER);
-  text(toTitleCase(selectedArea), menuX + 12, menuY + 18);
-
-  textAlign(RIGHT, CENTER);
-  text(menuOpen ? "▴" : "▾", menuX + 210, menuY + 18);
-
-  if (menuOpen) {
-    for (let i = 0; i < areas.length; i++) {
-      let iy = menuY + 36 + i * 32;
-      
-      fill("#D6D2C8");
-      rect(menuX, iy, menuW, 32, 6);
-      
-      fill(0);
-      textAlign(LEFT, CENTER);
-      text(toTitleCase(areas[i]), menuX + 12, iy + 16);
-    }
-  }
-}
 
 function drawOverlay(causeKey) {
-  fill(0, 150);
+  // Sfondo scuro semitrasparente dietro al popup
+  fill(0, 120);
+  noStroke();
   rect(0, 0, width, height);
 
+  // Dimensioni box centrato
+  const w = 500;
+  const h = 300;
+  const popX = width / 2;
+  const popY = height / 2;
+  const boxLeft = popX - w / 2;
+  const boxTop = popY - h / 2;
+
   push();
-  translate(0, -scrollY); 
-
+  // Sfondo con bordi arrotondati
   fill(255);
-  rect(width/2 - 250, height/2 - 150, 500, 300, 10);
+  stroke(0);
+  strokeWeight(1.5);
+  rect(boxLeft, boxTop, w, h, 12);
 
-  // Recupera il nome leggibile e la descrizione
+  // Titolo e descrizione
   let titolo = NOMI_CAUSE[causeKey] || causeKey;
-  let descrizione = DESCRIZIONI_CAUSE[causeKey] || "Descrizione non disponibile per questa causa.";
+  let descrizione = DESCRIZIONI_CAUSE[causeKey] || "Descrizione non disponibile.";
 
   fill(0);
+  noStroke();
   textAlign(CENTER, TOP);
-  
-  // Titolo
-  textSize(22);
   textStyle(BOLD);
-  text(titolo, width/2, height/2 - 110);
+  textSize(22);
+  text(titolo, popX, boxTop + 20);
 
-  // Descrizione (con word wrapping per andare a capo)
-  textSize(16);
   textStyle(NORMAL);
-  textWrap(WORD); // Importante per far andare a capo il testo
-  
-  // Disegna il testo dentro un rettangolo immaginario largo 400px
-  text(descrizione, width/2 - 200, height/2 - 60, 400);
+  textSize(16);
+  textAlign(LEFT, TOP);
+  text(descrizione, boxLeft + 30, boxTop + 70, w - 60, h - 100);
 
-  // Bottone Chiudi
-  fill("#EDEDED");
-  rect(width/2 - 40, height/2 + 80, 80, 30, 5);
-  fill(0);
-  textSize(14);
-  textAlign(CENTER, CENTER);
-  text("Chiudi", width/2, height/2 + 95);
+  // Icona X in alto a destra
+  const btnSize = 20;
+  const closeCx = boxLeft + w - 25;
+  const closeCy = boxTop + 25;
+
+  stroke(0);
+  strokeWeight(2);
+  line(closeCx - btnSize/2, closeCy - btnSize/2, closeCx + btnSize/2, closeCy + btnSize/2);
+  line(closeCx + btnSize/2, closeCy - btnSize/2, closeCx - btnSize/2, closeCy + btnSize/2);
+
+  
 
   pop();
+
+  // Salva coordinate per gestione click
+  overlayCloseBounds = {x: closeCx, y: closeCy, size: btnSize};
 }
+
+
 
 function getDatasetByKingdom(regno) {
     if (regno === "Animalia") return data_animali;
@@ -670,7 +754,7 @@ function drawLegend() {
 
     // Disegna tutto il testo
     textFont(customFont, isHovered || isClicked ? 700 : 400);
-    textSize(18);
+    textSize(24);
     text(fullText, startX, y);
 
     // Sottolineatura su hover → copre tutta la voce
@@ -686,74 +770,5 @@ function drawLegend() {
 
   pop();
 }
-
-function drawHeader() {
-  push();
-  const sz = constrain(width * 0.05, 30, 60);
-  textFont(customFont);
-  textStyle(NORMAL);
-  fill(0);
-
-  const x = width * 0.63;
-  const y = sz * 1.2;
-
-  // Prima riga
-  textAlign(LEFT, TOP);
-  textSize(sz);
-  text("Cause di rischio", x, y);
-
-  // Seconda riga
-  const titoloY2 = y + sz * 1.2;
-  textSize(sz);
-  text("estinzione in", x, titoloY2);
-
-  // Terza riga: menu
-  const titoloY3 = titoloY2 + sz * 1.2;
-
-  // Larghezza dinamica del menu
-  const label = toTitleCase(selectedArea);
-  textSize(sz * 0.7);
-  const menuW = textWidth(label) + 60; // margine extra
-  const menuH = sz * 0.9;
-  const menuX = x;
-  const menuY = titoloY3;
-
-  // Rettangolo menu
-  noStroke();
-  fill('#F2F0E5');
-  rect(menuX, menuY, menuW, menuH, 10);
-
-  // Testo selezionato
-  fill(0);
-  textAlign(LEFT, CENTER);
-  textSize(sz * 0.7);
-  text(label, menuX + 12, menuY + menuH / 2);
-
-  // Freccetta
-  textAlign(RIGHT, CENTER);
-  textSize(sz * 0.6);
-  text(menuOpen ? "▲" : "▼", menuX + menuW - 12, menuY + menuH / 2);
-
-  // Voci del menu → spostate più in basso per non sovrapporsi alla legenda
-  if (menuOpen) {
-    const offsetY = 80; // distanza extra dalla legenda
-    for (let i = 0; i < areas.length; i++) {
-      const iy = menuY + menuH + offsetY + i * menuH;
-      const ih = menuH;
-      const isHovered = mouseX > menuX && mouseX < menuX + menuW &&
-                        mouseY > iy && mouseY < iy + ih;
-
-      fill(isHovered ? "#BFBBAF" : "#D6D2C8");
-      rect(menuX, iy, menuW, ih, 6);
-
-      fill(0);
-      textAlign(LEFT, CENTER);
-      textSize(sz * 0.7);
-      text(toTitleCase(areas[i]), menuX + 12, iy + ih / 2);
-    }
-  }
-  pop();
-}
-
 
 
