@@ -139,25 +139,24 @@ function windowResized() {
   resizeCanvas(windowWidth, totalHeight);
 }
 
-
-
 function draw() {
   clear();
-  push();
-  translate(0, scrollY); // scroll del contenuto
 
-  // nuovo titolo + menu
+  // Header fisso
   drawHeader();
 
+  // Contenuto scrollabile
+  push();
+  translate(0, scrollY);
   drawKingdomFlowers();
+  pop();
 
+  // Overlay
   if (clickedCause) drawOverlay(clickedCause);
 
-  pop(); // Fine dello scroll
-    
+  // Tooltip
   drawTooltip();
 }
-
 
 function drawKingdomFlowers() {
   let kingdoms = ["Animalia", "Plantae", "Fungi", "Chromista"];
@@ -240,6 +239,7 @@ function drawKingdomFlowers() {
       for (let l = 0; l < petalShapes[regno][i].length; l++) {
         let shape = petalShapes[regno][i][l];
         beginShape();
+        noStroke();
         for (let p of shape) {
           let c = color(
             red(baseColor) + p.colorVar[0],
@@ -278,6 +278,7 @@ function drawKingdomFlowers() {
     // --- PISTILLO ---
     for (let shape of centerShapes[regno]) {
       beginShape();
+      noStroke();
       for (let p of shape) {
         let c = color(
           red(baseColor) + p.colorVar[0],
@@ -316,16 +317,15 @@ function drawKingdomFlowers() {
   }
 }
 
-
 function mouseMoved() {
   hoveredCause = null;
+  let isPointer = false; // flag per decidere se mostrare la mano
 
+  // --- LOGICA FIORI (hit-test petali) ---
   let kingdoms = ["Animalia", "Plantae", "Fungi", "Chromista"];
-
   let centerRadius = 20;
   let angleStep = TWO_PI / causes.length;
 
-  // stessi parametri del draw
   let marginLeft = 260;
   let marginTop = 280;
   let spacingX = 420;
@@ -354,13 +354,11 @@ function mouseMoved() {
     }
     if (maxValInRow === 0) maxValInRow = 1;
 
-    // posizione in griglia 2x2
     let col = k % 2;
     let rowIdx = floor(k / 2);
     let centerX = marginLeft + col * spacingX;
     let centerY = marginTop + rowIdx * spacingY;
 
-    // pre-filtraggio: se troppo lontano dal fiore, salta
     if (dist(mx, my, centerX, centerY) > maxPossibleRadius + 160) continue;
 
     for (let i = 0; i < causes.length; i++) {
@@ -368,65 +366,131 @@ function mouseMoved() {
       let val = int(row.get(causa));
       if (val === 0) continue;
 
-      // stessa formula logaritmica + scala ridotta
       let normVal = log(val + 1) / log(maxValInRow + 1);
       let petalLength = (80 + normVal * (maxPetalLengthLimit * 1.5 - 80)) * 0.8;
-
       let petalAngle = i * angleStep - HALF_PI;
 
-      // trasformazione in coordinate locali del petalo
       let dx = mx - centerX;
       let dy = my - centerY;
       let cosA = cos(-petalAngle), sinA = sin(-petalAngle);
       let localX = dx * cosA - dy * sinA;
       let localY = dx * sinA + dy * cosA;
 
-      // ellisse di hit-test identica al draw
       let baseOffset = centerRadius * 0.6;
       let ellipseCenterX = 0;
       let ellipseCenterY = baseOffset + petalLength / 2;
       let radiusX = dynamicPetalWidth / 2;
       let radiusY = petalLength / 2;
 
-      const tol = 1.05; // leggera tolleranza
+      const tol = 1.05;
       let part1 = sq(localX - ellipseCenterX) / sq(radiusX * tol);
       let part2 = sq(localY - ellipseCenterY) / sq(radiusY * tol);
 
       if (part1 + part2 <= 1) {
         hoveredCause = { kingdom: regno, cause: causa, value: val };
-        return;
+        isPointer = true; // siamo sopra un petalo
+        break;
       }
     }
   }
-}
 
+  // --- LOGICA MENU ---
+  const sz = constrain(width * 0.05, 30, 60);
+  const x = width * 0.63;
+  const y = sz * 1.2;
+  const titoloY2 = y + sz * 1.2;
+  const titoloY3 = titoloY2 + sz * 1.2;
+
+  textFont(customFont);
+  textStyle(NORMAL);
+
+  textSize(sz * 0.7);
+  const label = toTitleCase(selectedArea);
+  const padding = 40;
+  const menuW = textWidth(label) + padding;
+  const menuH = sz * 0.9;
+
+  textSize(sz);
+  const menuX = x + textWidth("in ") + 10;
+  const menuY = titoloY3;
+
+  if ((mouseX > menuX && mouseX < menuX + menuW &&
+       mouseY > menuY && mouseY < menuY + menuH) ||
+      (menuOpen && mouseY > menuY + menuH && mouseY < menuY + menuH + areas.length * menuH &&
+       mouseX > menuX && mouseX < menuX + menuW)) {
+    isPointer = true; // siamo sopra il menu o una voce
+  }
+
+  // --- DECISIONE FINALE CURSORE ---
+  if (isPointer) {
+    cursor(HAND);
+  } else {
+    cursor(ARROW);
+  }
+}
 
 function mouseWheel(event) {
   scrollY -= event.delta; 
 }
 
 function mousePressed() {
-  // Gestione click menu
-  if (mouseX > 20 && mouseX < 240 && mouseY > 20 && mouseY < 56) {
+  // Se un popup è aperto (logica tua), gestiscilo qui e esci
+  if (clickedCause) {
+    if (mouseX > width/2 - 40 && mouseX < width/2 + 40 &&
+        mouseY > height/2 + 80 && mouseY < height/2 + 110) {
+      clickedCause = null;
+    }
+    return;
+  }
+
+  // --- MENU ---
+  const sz = constrain(width * 0.05, 30, 60);
+  const x = width * 0.63;
+  const y = sz * 1.2;
+  const titoloY2 = y + sz * 1.2;
+  const titoloY3 = titoloY2 + sz * 1.2;
+
+  // Calcoli identici a drawHeader (ordine textSize → textWidth)
+  textFont(customFont);
+  textStyle(NORMAL);
+
+  textSize(sz * 0.7);
+  const label = toTitleCase(selectedArea);
+  const padding = 40;
+  const menuW = textWidth(label) + padding;
+  const menuH = sz * 0.9;
+
+  textSize(sz);
+  const menuX = x + textWidth("in ") + 10;
+  const menuY = titoloY3;
+
+  // Click sulla testata del menu (rettangolo + freccetta)
+  if (mouseX > menuX && mouseX < menuX + menuW &&
+      mouseY > menuY && mouseY < menuY + menuH) {
     menuOpen = !menuOpen;
     return;
   }
+
+  // Click sulle voci (stessa larghezza del menuW)
   if (menuOpen) {
     for (let i = 0; i < areas.length; i++) {
-      let iy = 56 + i * 32;
-      if (mouseX > 20 && mouseX < 240 && mouseY > iy && mouseY < iy + 32) {
+      const iy = menuY + menuH + i * menuH;
+      const ih = menuH;
+      if (mouseX > menuX && mouseX < menuX + menuW &&
+          mouseY > iy && mouseY < iy + ih) {
         selectedArea = areas[i];
         menuOpen = false;
         return;
       }
     }
   }
-  
-  // Gestione click petalo
+
+  // --- Click sui fiori (se presenti in questa pagina)
   if (hoveredCause) {
-    clickedCause = hoveredCause.cause; // Salviamo solo il nome della causa per l'overlay
+    clickedCause = hoveredCause.cause;
   }
 }
+
 
 function drawDropdownMenu() {
   // Calcolo la posizione basandomi sulla larghezza dello schermo
@@ -502,54 +566,6 @@ function drawOverlay(causeKey) {
   pop();
 }
 
-function mousePressed() {
-  // --- PRIORITÀ 1: GESTIONE POPUP ---
-  if (clickedCause) {
-    if (mouseX > width/2 - 40 && mouseX < width/2 + 40 &&
-        mouseY > height/2 + 80 && mouseY < height/2 + 110) {
-      clickedCause = null;
-    }
-    return;
-  }
-
-  // --- PRIORITÀ 2: GESTIONE MENU ---
-  const sz = constrain(width * 0.05, 30, 60);
-  let x = width * 0.55;
-  let y = sz * 1.5;
-  let titolo2 = "estinzione in";
-  let titoloWidth = textWidth(titolo2 + " ");
-  let menuW = 220;
-  let menuH = sz * 0.8;
-  let menuX = x + titoloWidth;
-  let menuY = y + sz * 1.2;
-
-  // click sulla testata del menu
-  if (mouseX > menuX && mouseX < menuX + menuW &&
-      mouseY > menuY && mouseY < menuY + menuH) {
-    menuOpen = !menuOpen;
-    return;
-  }
-
-  // click sulle voci del menu
-  if (menuOpen) {
-    for (let i = 0; i < areas.length; i++) {
-      let iy = menuY + menuH + i * (menuH * 0.9);
-      if (mouseX > menuX && mouseX < menuX + menuW &&
-          mouseY > iy && mouseY < iy + menuH * 0.9) {
-        selectedArea = areas[i];
-        menuOpen = false;
-        return;
-      }
-    }
-  }
-
-  // --- PRIORITÀ 3: GESTIONE FIORI ---
-  if (hoveredCause) {
-    clickedCause = hoveredCause.cause;
-  }
-}
-
-
 function getDatasetByKingdom(regno) {
     if (regno === "Animalia") return data_animali;
     if (regno === "Plantae")  return data_piante;
@@ -596,7 +612,7 @@ function drawTooltip() {
     // Rettangolo sfondo
     fill(255);
     stroke(0);
-    strokeWeight(1);
+    strokeWeight(0);
     rect(x, y, w, h, 5); // 5 raggio angoli arrotondati
     
     // Testo
@@ -608,57 +624,72 @@ function drawTooltip() {
 }
 
 function drawHeader() {
+  push();
   const sz = constrain(width * 0.05, 30, 60);
-  textSize(sz);
-  textAlign(LEFT, TOP);
-  textStyle(NORMAL); // testo più leggero
-  fill(0);
   textFont(customFont);
+  textStyle(NORMAL);
+  fill(0);
 
-  // posizione centro-destra
-  let x = width * 0.55;
-  let y = sz * 1.5;
+  const x = width * 0.63;
+  const y = sz * 1.2;
 
-  // prima riga
-  text("Cause di rischio", x, y);
+  // Prima riga
+  textAlign(LEFT, TOP);
+  textSize(sz);
+  text("Cause di", x, y);
 
-  // seconda riga: "estinzione in" + menu
-  let titolo2 = "estinzione in";
-  let titoloWidth = textWidth(titolo2 + " ");
+  // Seconda riga
+  const titoloY2 = y + sz * 1.2;
+  textSize(sz);
+  text("Rischio estinzione", x, titoloY2);
 
-  text(titolo2, x, y + sz * 1.2);
+  // Terza riga: "in" + menu
+  const titoloY3 = titoloY2 + sz * 1.2;
+  textSize(sz);
+  text("in", x, titoloY3);
 
-  // menu subito affianco
-  let menuW = 220;
-  let menuH = sz * 0.8;
-  let menuX = x + titoloWidth;
-  let menuY = y + sz * 1.2;
+  // Larghezza dinamica del menu
+  const padding = 40; // margine interno orizzontale totale
+  const label = toTitleCase(selectedArea);
+  textSize(sz * 0.7); // stessa size usata nel testo della casella
+  const menuW = textWidth(label) + padding;
+  const menuH = sz * 0.9;
+  textSize(sz); // torna alla size grande per misurare "in "
+  const menuX = x + textWidth("in ") + 10; 
+  const menuY = titoloY3;
 
-  fill(BG);
+  // Rettangolo menu
   noStroke();
+  fill(BG);
   rect(menuX, menuY, menuW, menuH, 6);
 
+  // Testo selezionato
   fill(0);
-  textSize(sz * 0.6);
   textAlign(LEFT, CENTER);
-  text(toTitleCase(selectedArea), menuX + 12, menuY + menuH/2);
+  textSize(sz * 0.7);
+  text(label, menuX + 12, menuY + menuH / 2);
 
-  // freccia del menu
+  // Freccetta
   textAlign(RIGHT, CENTER);
-  text(menuOpen ? "▴" : "▾", menuX + menuW - 10, menuY + menuH/2);
+  textSize(sz * 0.6);
+  text(menuOpen ? "▲" : "▼", menuX + menuW - 12, menuY + menuH / 2);
 
-  // voci del menu se aperto
+  // Voci del menu (stessa larghezza della casella)
   if (menuOpen) {
     for (let i = 0; i < areas.length; i++) {
-      let iy = menuY + menuH + i * (menuH * 0.9);
-      fill("#D6D2C8");
-      rect(menuX, iy, menuW, menuH * 0.9, 6);
+      const iy = menuY + menuH + i * menuH;
+      const ih = menuH;
+      const isHovered = mouseX > menuX && mouseX < menuX + menuW &&
+                        mouseY > iy && mouseY < iy + ih;
+
+      fill(isHovered ? "#C9C5BA" : "#D6D2C8");
+      rect(menuX, iy, menuW, ih, 6);
 
       fill(0);
       textAlign(LEFT, CENTER);
-      text(toTitleCase(areas[i]), menuX + 12, iy + (menuH * 0.45));
+      textSize(sz * 0.7);
+      text(toTitleCase(areas[i]), menuX + 12, iy + ih / 2);
     }
   }
+  pop();
 }
-
-

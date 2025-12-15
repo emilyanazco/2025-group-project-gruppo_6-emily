@@ -21,6 +21,7 @@ canvas {
   left: 0;
   width: 100%;
   z-index: 1;
+  cursor: default; /* cursore normale di base */
 }
 
 .bottom-decoration-container {
@@ -136,3 +137,8 @@ canvas {
   background-repeat: repeat-x;
   background-size: 10% auto;
 }
+
+.menu, .menu-item, .back-btn, .nav-item a {
+  cursor: pointer; /* mano sopra elementi cliccabili */
+}
+
