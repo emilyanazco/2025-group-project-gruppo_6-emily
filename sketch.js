@@ -625,76 +625,6 @@ function drawTooltip() {
   }
 }
 
-function drawHeader() {
-  push();
-  const sz = constrain(width * 0.05, 30, 60);
-  textFont(customFont);
-  textStyle(NORMAL);
-  fill(0);
-
-  const x = width * 0.63;
-  const y = sz * 1.2;
-
-  // Prima riga
-  textAlign(LEFT, TOP);
-  textSize(sz);
-  text("Cause di rischio", x, y);
-
-  // Seconda riga
-  const titoloY2 = y + sz * 1.2;
-  textSize(sz);
-  text("estinzione in", x, titoloY2);
-
-  // Terza riga: menu
-  const titoloY3 = titoloY2 + sz * 1.2;
-  textSize(sz);
-  text(x, titoloY3);
-
-  // Larghezza dinamica del menu
-  const label = toTitleCase(selectedArea);
-  textSize(sz); // stessa size usata nel testo della casella
-  const menuW = textWidth(label);
-  const menuH = sz;
-  textSize(sz); // torna alla size grande per misurare "in "
-  const menuX = x; 
-  const menuY = titoloY3;
-
-  // Rettangolo menu
-  noStroke();
-  fill('#F2F0E5');
-  rect(menuX, menuY, menuW +10, menuH, 10);
-
-  // Testo selezionato
-  fill(0);
-  textAlign(LEFT, CENTER);
-  textSize(sz);
-  text(label, menuX + 12, menuY + menuH / 2);
-
-  // Freccetta
-  textAlign(RIGHT, CENTER);
-  textSize(sz * 0.6);
-  text(menuOpen ? "▲" : "▼", menuX + menuW - 2, menuY + menuH / 2);
-
-  // Voci del menu (stessa larghezza della casella)
-  if (menuOpen) {
-    for (let i = 0; i < areas.length; i++) {
-      const iy = menuY + menuH + i * menuH;
-      const ih = menuH;
-      const isHovered = mouseX > menuX && mouseX < menuX + menuW &&
-                        mouseY > iy && mouseY < iy + ih;
-
-      fill(isHovered ? "#C9C5BA" : "#D6D2C8");
-      rect(menuX, iy, menuW, ih, 6);
-
-      fill(0);
-      textAlign(LEFT, CENTER);
-      textSize(sz * 0.7);
-      text(toTitleCase(areas[i]), menuX + 12, iy + ih / 2);
-    }
-  }
-  pop();
-}
-
 function drawLegend() {
   push();
   textFont(customFont);
@@ -756,3 +686,74 @@ function drawLegend() {
 
   pop();
 }
+
+function drawHeader() {
+  push();
+  const sz = constrain(width * 0.05, 30, 60);
+  textFont(customFont);
+  textStyle(NORMAL);
+  fill(0);
+
+  const x = width * 0.63;
+  const y = sz * 1.2;
+
+  // Prima riga
+  textAlign(LEFT, TOP);
+  textSize(sz);
+  text("Cause di rischio", x, y);
+
+  // Seconda riga
+  const titoloY2 = y + sz * 1.2;
+  textSize(sz);
+  text("estinzione in", x, titoloY2);
+
+  // Terza riga: menu
+  const titoloY3 = titoloY2 + sz * 1.2;
+
+  // Larghezza dinamica del menu
+  const label = toTitleCase(selectedArea);
+  textSize(sz * 0.7);
+  const menuW = textWidth(label) + 60; // margine extra
+  const menuH = sz * 0.9;
+  const menuX = x;
+  const menuY = titoloY3;
+
+  // Rettangolo menu
+  noStroke();
+  fill('#F2F0E5');
+  rect(menuX, menuY, menuW, menuH, 10);
+
+  // Testo selezionato
+  fill(0);
+  textAlign(LEFT, CENTER);
+  textSize(sz * 0.7);
+  text(label, menuX + 12, menuY + menuH / 2);
+
+  // Freccetta
+  textAlign(RIGHT, CENTER);
+  textSize(sz * 0.6);
+  text(menuOpen ? "▲" : "▼", menuX + menuW - 12, menuY + menuH / 2);
+
+  // Voci del menu → spostate più in basso per non sovrapporsi alla legenda
+  if (menuOpen) {
+    const offsetY = 80; // distanza extra dalla legenda
+    for (let i = 0; i < areas.length; i++) {
+      const iy = menuY + menuH + offsetY + i * menuH;
+      const ih = menuH;
+      const isHovered = mouseX > menuX && mouseX < menuX + menuW &&
+                        mouseY > iy && mouseY < iy + ih;
+
+      fill(isHovered ? "#BFBBAF" : "#D6D2C8");
+      rect(menuX, iy, menuW, ih, 6);
+
+      fill(0);
+      textAlign(LEFT, CENTER);
+      textSize(sz * 0.7);
+      text(toTitleCase(areas[i]), menuX + 12, iy + ih / 2);
+    }
+  }
+  pop();
+}
+
+
+
