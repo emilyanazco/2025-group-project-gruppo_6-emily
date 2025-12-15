@@ -145,16 +145,16 @@ function draw() {
   // Header fisso
   drawHeader();
 
+  // Legenda subito sotto al titolo
+  drawLegend();
+
   // Contenuto scrollabile
   push();
   translate(0, scrollY);
   drawKingdomFlowers();
   pop();
 
-  // Overlay
   if (clickedCause) drawOverlay(clickedCause);
-
-  // Tooltip
   drawTooltip();
 }
 
@@ -266,9 +266,10 @@ function drawKingdomFlowers() {
       let stagger = (i % 2 === 0) ? 0 : 12;
       translate(0, baseDist + stagger); 
       rotate(-angle); 
-      textSize(12); 
+      textSize(15); 
       let etichetta = LETTERE_CAUSE[causa] || causa; 
       fill(0);
+      // textWeight(BOLD);
       text(etichetta, 0, 0);
       pop(); 
 
@@ -316,6 +317,7 @@ function drawKingdomFlowers() {
     pop(); 
   }
 }
+
 
 function mouseMoved() {
   hoveredCause = null;
@@ -636,43 +638,42 @@ function drawHeader() {
   // Prima riga
   textAlign(LEFT, TOP);
   textSize(sz);
-  text("Cause di", x, y);
+  text("Cause di rischio", x, y);
 
   // Seconda riga
   const titoloY2 = y + sz * 1.2;
   textSize(sz);
-  text("Rischio estinzione", x, titoloY2);
+  text("estinzione in", x, titoloY2);
 
-  // Terza riga: "in" + menu
+  // Terza riga: menu
   const titoloY3 = titoloY2 + sz * 1.2;
   textSize(sz);
-  text("in", x, titoloY3);
+  text(x, titoloY3);
 
   // Larghezza dinamica del menu
-  const padding = 40; // margine interno orizzontale totale
   const label = toTitleCase(selectedArea);
-  textSize(sz * 0.7); // stessa size usata nel testo della casella
-  const menuW = textWidth(label) + padding;
-  const menuH = sz * 0.9;
+  textSize(sz); // stessa size usata nel testo della casella
+  const menuW = textWidth(label);
+  const menuH = sz;
   textSize(sz); // torna alla size grande per misurare "in "
-  const menuX = x + textWidth("in ") + 10; 
+  const menuX = x; 
   const menuY = titoloY3;
 
   // Rettangolo menu
   noStroke();
-  fill(BG);
-  rect(menuX, menuY, menuW, menuH, 6);
+  fill('#F2F0E5');
+  rect(menuX, menuY, menuW +10, menuH, 10);
 
   // Testo selezionato
   fill(0);
   textAlign(LEFT, CENTER);
-  textSize(sz * 0.7);
+  textSize(sz);
   text(label, menuX + 12, menuY + menuH / 2);
 
   // Freccetta
   textAlign(RIGHT, CENTER);
   textSize(sz * 0.6);
-  text(menuOpen ? "▲" : "▼", menuX + menuW - 12, menuY + menuH / 2);
+  text(menuOpen ? "▲" : "▼", menuX + menuW - 2, menuY + menuH / 2);
 
   // Voci del menu (stessa larghezza della casella)
   if (menuOpen) {
@@ -691,5 +692,67 @@ function drawHeader() {
       text(toTitleCase(areas[i]), menuX + 12, iy + ih / 2);
     }
   }
+  pop();
+}
+
+function drawLegend() {
+  push();
+  textFont(customFont);
+  textStyle(NORMAL);
+  fill(0);
+  textAlign(LEFT, TOP);
+
+  const sz = constrain(width * 0.05, 30, 60);
+  const x = width * 0.63;
+  const titoloY2 = sz * 1.2 + sz * 1.2;
+  const titoloY3 = titoloY2 + sz * 1.2;
+  const startX = x;
+  const startY = titoloY3 + sz * 2.0;  // sotto al titolo
+  const lineHeight = 34;
+
+  // Ordina alfabeticamente
+  let entries = Object.entries(LETTERE_CAUSE)
+    .sort((a, b) => a[1].localeCompare(b[1]));
+
+  for (let i = 0; i < entries.length; i++) {
+    const causa = entries[i][0];
+    const lettera = entries[i][1];
+    const nome = NOMI_CAUSE[causa];
+    const y = startY + i * lineHeight;
+
+    // Testo completo (lettera + nome)
+    const fullText = `${lettera}) ${nome}`;
+
+    // Evidenzia se hover o click
+    let isHovered = hoveredCause && hoveredCause.cause === causa;
+    let isClicked = clickedCause && clickedCause === causa;
+
+    if (isHovered) {
+      fill("#8f3b56");
+      textStyle(BOLD);
+    } else if (isClicked) {
+      fill("#333");
+      textStyle(BOLD);
+    } else {
+      fill(0);
+      textStyle(NORMAL);
+    }
+
+    // Disegna tutto il testo
+    textFont(customFont, isHovered || isClicked ? 700 : 400);
+    textSize(18);
+    text(fullText, startX, y);
+
+    // Sottolineatura su hover → copre tutta la voce
+    if (isHovered) {
+      const underlineY = y + 22; // posizione sotto la riga
+      const underlineW = textWidth(fullText);
+      stroke("#8f3b56");
+      strokeWeight(1.6);
+      line(startX, underlineY, startX + underlineW, underlineY);
+      noStroke();
+    }
+  }
+
   pop();
 }
