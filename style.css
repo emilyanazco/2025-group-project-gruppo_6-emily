@@ -1,3 +1,7 @@
+:root {
+  --text: #4f4838;
+}
+
 html, body {
   margin: 0;
   padding: 0;
@@ -5,7 +9,7 @@ html, body {
   min-height: 100vh;
   overflow: hidden;
 
-  background-image: url('carta.jpg'); 
+  background-image: url('immagini/carta.jpg'); 
   background-size: cover; 
   background-position: center;
   background-attachment: fixed;
@@ -83,7 +87,7 @@ canvas {
   top: 65px;
   left: 30px;
   z-index: 2000;
-  color: #000;
+  color: var(--text);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -111,3 +115,4 @@ canvas {
 .menu, .menu-item, .back-btn, .nav-item a {
   cursor: pointer; /* mano sopra elementi cliccabili */
 }
+
