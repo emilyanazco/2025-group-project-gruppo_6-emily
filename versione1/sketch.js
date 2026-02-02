@@ -1,14 +1,17 @@
-/* 1. COSTANTI E VARIABILI GLOBALI */
+/* -------------------------------------------------------
+   1. COSTANTI E VARIABILI GLOBALI
+------------------------------------------------------- */
 
 let data_aree, data_animali, data_piante, data_funghi, data_cromisti;
 let areas = [];
+let areasNormalized = [];
+
 let selectedAreaOriginal = "Sud America";
 let selectedArea = normalizeAreaName("Sud America");
+
 let menuOpen = false;
 let menuX_global, menuY_global, menuW_global, menuH_global, menuSz_global;
 let menuAlpha = 0;
-let areasNormalized = [];
-
 
 let petalShapes = {};   // forme precalcolate dei petali
 let centerShapes = {};  // forme precalcolate dei pistilli
@@ -19,6 +22,8 @@ let causes = [];        // lista cause normalizzate
 let hoveredCause = null;
 let clickedCause = null;
 let overlayCloseBounds = null;
+
+let sfondo_overlay;
 
 // Palette regni
 const COLORS = {
@@ -80,8 +85,12 @@ const DESCRIZIONI_CAUSE = {
   "other/unknown": "Questa categoria raccoglie le minacce che non sono state ancora identificate con precisione o per le quali mancano dati sufficienti."
 };
 
+const KINGDOMS = ["Animalia", "Plantae", "Fungi", "Chromista"];
 
-/* 2. FUNZIONI DI UTILITÀ E NORMALIZZAZIONE */
+
+/* -------------------------------------------------------
+   2. FUNZIONI DI UTILITÀ E NORMALIZZAZIONE
+------------------------------------------------------- */
 
 function normalizeCause(name) {
   return name.toLowerCase().trim().replace(/\s+/g, " ");
@@ -148,46 +157,61 @@ function getDatasetByKingdom(regno) {
   return null;
 }
 
+function getFlowerCenter(k) {
+  const marginLeft = 260;
+  const marginTop = 250;   // quello corretto
+  const spacingX = 420;
+  const spacingY = 400;
 
-/* 3. PRELOAD: CARICAMENTO FONT E CSV */
+  return {
+    x: marginLeft + (k % 2) * spacingX,
+    y: marginTop + floor(k / 2) * spacingY
+  };
+}
+
+
+/* -------------------------------------------------------
+   3. PRELOAD: CARICAMENTO FONT E CSV
+------------------------------------------------------- */
 
 function preload() {
   customFont = loadFont("fonts/CormorantGaramond-VariableFont_wght.ttf");
 
-  data_aree    = loadTable("data/data_aree.csv", "csv", "header");
-  data_animali = loadTable("data/data_animali.csv", "csv", "header");
-  data_piante  = loadTable("data/data_piante.csv", "csv", "header");
-  data_funghi  = loadTable("data/data_funghi.csv", "csv", "header");
-  data_cromisti = loadTable("data/data_cromisti.csv","csv","header");
+  data_aree     = loadTable("data/data_aree.csv", "csv", "header");
+  data_animali  = loadTable("data/data_animali.csv", "csv", "header");
+  data_piante   = loadTable("data/data_piante.csv", "csv", "header");
+  data_funghi   = loadTable("data/data_funghi.csv", "csv", "header");
+  data_cromisti = loadTable("data/data_cromisti.csv", "csv", "header");
 
   sfondo_overlay = loadImage("immagini/carta2.jpg");
 }
 
 
-/* 4. SETUP: INIZIALIZZAZIONE CANVAS E DATI */
+/* -------------------------------------------------------
+   4. SETUP: INIZIALIZZAZIONE CANVAS E DATI
+------------------------------------------------------- */
 
 function setup() {
   const areaFromURL = getAreaFromURL();
   if (areaFromURL) selectedArea = normalizeAreaName(areaFromURL);
 
-// Rimuove la riga "Totale" da tutti i dataset
-function removeTotalRow(table) {
-  for (let r = table.getRowCount() - 1; r >= 0; r--) {
-    let name = table.getString(r, 0);
-    if (name && name.toLowerCase().trim() === "totale") {
-      table.removeRow(r);
+  // Rimuove la riga "Totale" da tutti i dataset
+  function removeTotalRow(table) {
+    for (let r = table.getRowCount() - 1; r >= 0; r--) {
+      let name = table.getString(r, 0);
+      if (name && name.toLowerCase().trim() === "totale") {
+        table.removeRow(r);
+      }
     }
   }
-}
 
-removeTotalRow(data_aree);
-removeTotalRow(data_animali);
-removeTotalRow(data_piante);
-removeTotalRow(data_funghi);
-removeTotalRow(data_cromisti);
+  removeTotalRow(data_aree);
+  removeTotalRow(data_animali);
+  removeTotalRow(data_piante);
+  removeTotalRow(data_funghi);
+  removeTotalRow(data_cromisti);
 
-
-  //
+  // Layout verticale
   let marginTop = 280;
   let spacingY = 400;
   let rows = 2;
@@ -200,9 +224,8 @@ removeTotalRow(data_cromisti);
   for (let r = 0; r < data_aree.getRowCount(); r++) {
     let area = data_aree.getString(r, 0);
     if (area && area.toLowerCase() !== "total") {
-      areas.push(area);  //forma originale per il menu
-      areasNormalized.push(normalizeAreaName(area));   // forma normalizzata per il matching
-      
+      areas.push(area);                      // forma originale per il menu
+      areasNormalized.push(normalizeAreaName(area)); // forma normalizzata per il matching
     }
   }
 
@@ -221,9 +244,10 @@ removeTotalRow(data_cromisti);
   precalcShapes();
 }
 
+
 // Precalcolo forme organiche per petali e pistilli
 function precalcShapes() {
-  for (let regno of ["Animalia","Plantae","Fungi","Chromista"]) {
+  for (let regno of KINGDOMS) {
     petalShapes[regno] = [];
     centerShapes[regno] = [];
 
@@ -232,13 +256,13 @@ function precalcShapes() {
       let layers = [];
       for (let l = 0; l < 12; l++) {
         let shape = [];
-        for (let a = 0; a < TWO_PI; a += PI/8) {
+        for (let a = 0; a < TWO_PI; a += PI / 8) {
           shape.push({
             angle: a,
-            rxVar: random(-3,3),
-            ryVar: random(-5,5),
-            alpha: 25 + random(-10,10),
-            colorVar: [random(-20,20), random(-20,20), random(-20,20)]
+            rxVar: random(-3, 3),
+            ryVar: random(-5, 5),
+            alpha: 25 + random(-10, 10),
+            colorVar: [random(-20, 20), random(-20, 20), random(-20, 20)]
           });
         }
         layers.push(shape);
@@ -249,12 +273,12 @@ function precalcShapes() {
     // Pistilli
     for (let l = 0; l < 8; l++) {
       let shape = [];
-      for (let a = 0; a < TWO_PI; a += PI/10) {
+      for (let a = 0; a < TWO_PI; a += PI / 10) {
         shape.push({
           angle: a,
-          rVar: random(-2,2),
-          alpha: 30 + random(-10,10),
-          colorVar: [random(-15,15), random(-15,15), random(-15,15)]
+          rVar: random(-2, 2),
+          alpha: 30 + random(-10, 10),
+          colorVar: [random(-15, 15), random(-15, 15), random(-15, 15)]
         });
       }
       centerShapes[regno].push(shape);
@@ -263,7 +287,9 @@ function precalcShapes() {
 }
 
 
-/* 5. DRAW: CICLO DI RENDERING */
+/* -------------------------------------------------------
+   5. DRAW: CICLO DI RENDERING
+------------------------------------------------------- */
 
 function draw() {
   clear();
@@ -278,18 +304,27 @@ function draw() {
 
   if (clickedCause) drawOverlay(clickedCause);
   if (!clickedCause) drawTooltip();
-  
-  if (menuOpen) drawDropdownMenu(menuX_global, menuY_global, menuW_global, menuH_global, menuSz_global);
+
+  if (menuOpen) {
+    drawDropdownMenu(
+      menuX_global,
+      menuY_global,
+      menuW_global,
+      menuH_global,
+      menuSz_global
+    );
+  }
 }
 
 
-
-/* 6. COMPONENTI UI: HEADER, MENU, LEGENDA */
+/* -------------------------------------------------------
+   6. COMPONENTI UI: HEADER, MENU, LEGENDA
+------------------------------------------------------- */
 
 function drawHeader() {
   push();
   const sz = constrain(width * 0.05, 30, 60);
-  const menuTextSize = sz * 0.48;   // <<< DIMENSIONE TESTO COERENTE
+  const menuTextSize = sz * 0.48;
   textFont(customFont);
   textStyle(NORMAL);
   fill(TEXT_COLOR);
@@ -308,7 +343,6 @@ function drawHeader() {
   const titoloY3 = titoloY2 + sz * 1.2;
   const label = selectedAreaOriginal;
 
-
   // Calcolo coerente della larghezza
   textSize(menuTextSize);
   let maxW = textWidth(label);
@@ -316,14 +350,14 @@ function drawHeader() {
     maxW = max(maxW, textWidth(toTitleCase(area)));
   }
 
-  const menuW = maxW + 48;   // <<< PIÙ COMPATTO
-  const menuH = sz * 0.58;   // <<< CASELLA PIÙ BASSA
+  const menuW = maxW + 48;
+  const menuH = sz * 0.58;
   const menuX = x;
   const menuY = titoloY3;
 
   // Bottone
   noStroke();
-  fill('#F2F0E5');
+  fill("#F2F0E5");
   rect(menuX, menuY, menuW, menuH, 10);
 
   // Testo area
@@ -342,13 +376,38 @@ function drawHeader() {
   menuY_global = menuY;
   menuW_global = menuW;
   menuH_global = menuH;
-  menuSz_global = sz;  
+  menuSz_global = sz;
+
+  // Micronota sotto il titolo
+  const notaY = titoloY3 + menuH + 22;
+  const notaW = 480;
+  const notaH = 70;
+
+  push();
+  fill(242, 240, 229);
+  stroke(TEXT_COLOR + "40");
+  strokeWeight(1);
+  rect(x, notaY, notaW, notaH, 10);
+
+  noStroke();
+  fill(TEXT_COLOR);
+  textAlign(LEFT, TOP);
+  textSize(sz * 0.32);
+  text(
+    "Ogni fiore mostra un regno biologico: la lunghezza dei petali\nindica quante specie sono minacciate per ciascuna causa.",
+    x + 14,
+    notaY + 12
+  );
+  pop();
 }
 
 function drawDropdownMenu(menuX, menuY, menuW, menuH, sz) {
+  push(); // impedisce al menu di influenzare il layout
+
   const menuTextSize = sz * 0.48;
   textSize(menuTextSize);
 
+  // disegna il menu SOPRA, senza spingere nulla
   for (let i = 0; i < areas.length; i++) {
     const iy = menuY + menuH + i * menuH;
     const ih = menuH;
@@ -357,33 +416,21 @@ function drawDropdownMenu(menuX, menuY, menuW, menuH, sz) {
       mouseX > menuX && mouseX < menuX + menuW &&
       mouseY > iy && mouseY < iy + ih;
 
-    // Sfondo voce
     fill(isHovered ? "#BFBBAF" : "#F2F0E5");
     noStroke();
 
-    // Angoli smussati
     let tl = 0, tr = 0, br = 0, bl = 0;
-
-    // Primo elemento → angoli superiori
-    if (i === 0) {
-      tl = 10;
-      tr = 10;
-    }
-
-    // Ultimo elemento → angoli inferiori
-    if (i === areas.length - 1) {
-      bl = 10;
-      br = 10;
-    }
+    if (i === 0) { tl = 10; tr = 10; }
+    if (i === areas.length - 1) { bl = 10; br = 10; }
 
     rect(menuX, iy, menuW, ih, tl, tr, br, bl);
 
-    // Testo
     fill(TEXT_COLOR);
     textAlign(LEFT, CENTER);
     text(areas[i], menuX + 12, iy + ih / 2);
-
   }
+
+  pop(); // chiude l’overlay
 }
 
 function drawLegend(activeCause) {
@@ -393,51 +440,46 @@ function drawLegend(activeCause) {
 
   const sz = constrain(width * 0.05, 30, 60);
   const x = width * 0.63;
-  const startY = sz * 1.2 + sz * 1.2 + sz * 1.2 + sz * 2.0;
+  const startY = sz * 1.2 + sz * 1.2 + sz * 1.2 + sz * 2.0 + 40;
   const lineHeight = 34;
 
   let entries = Object.entries(LETTERE_CAUSE)
     .sort((a, b) => a[1].localeCompare(b[1]));
 
-    for (let i = 0; i < entries.length; i++) {
-      const causa = entries[i][0];
-      const lettera = entries[i][1];
-      const nome = NOMI_CAUSE[causa];
-      const y = startY + i * lineHeight;
-    
-      const fullText = `${lettera}) ${nome}`;
-      const isActive = activeCause === causa;
-    
-      // --- HIGHLIGHT PIÙ EVIDENTE ---
-      if (isActive) {
-        fill(230, 224, 210);   // colore più caldo e più visibile
-        noStroke();
-        rect(x - 14, y - 6, 300, lineHeight + 8, 8); 
-      }
-    
-      // --- TESTO ---
-      fill(TEXT_COLOR);
-      textFont(customFont, isActive ? 700 : 400);
-      textSize(24);
-      text(fullText, x, y);
-    }    
-    
+  for (let i = 0; i < entries.length; i++) {
+    const causa = entries[i][0];
+    const lettera = entries[i][1];
+    const nome = NOMI_CAUSE[causa];
+    const y = startY + i * lineHeight;
+
+    const fullText = `${lettera}) ${nome}`;
+    const isActive = activeCause === causa;
+
+    if (isActive) {
+      fill(230, 224, 210);
+      noStroke();
+      rect(x - 14, y - 6, 300, lineHeight + 8, 8);
+    }
+
+    fill(TEXT_COLOR);
+    textFont(customFont, isActive ? 700 : 400);
+    textSize(24);
+    text(fullText, x, y);
+  }
 
   pop();
 }
 
 
-
-/* 7. FIORI E PETALI */
+/* -------------------------------------------------------
+   7. FIORI E PETALI
+------------------------------------------------------- */
 
 function drawKingdomFlowers(activeCause) {
-  let kingdoms = ["Animalia", "Plantae", "Fungi", "Chromista"];
-  
   let centerRadius = 20;
   let angleStep = TWO_PI / causes.length;
 
-  let marginLeft = 260;
-  let marginTop = 250;
+  // valori unici e coerenti
   let spacingX = 420;
   let spacingY = 400;
 
@@ -448,12 +490,16 @@ function drawKingdomFlowers(activeCause) {
   let availableArc = (minPetalMidRadius * TWO_PI) / causes.length;
   let dynamicPetalWidth = min(65, availableArc * 0.95);
 
-  for (let k = 0; k < kingdoms.length; k++) {
-    let regno = kingdoms[k];
+  for (let k = 0; k < KINGDOMS.length; k++) {
+    let regno = KINGDOMS[k];
     let dataset = getDatasetByKingdom(regno);
     let row = getRowByArea(dataset, selectedArea);
     if (!row) continue;
 
+    // trova il centro del fiore in modo coerente
+    const { x: centerX, y: centerY } = getFlowerCenter(k);
+
+    // calcolo max valore
     let maxValInRow = 0;
     for (let causa of causes) {
       let realCol = causeMap[regno][causa];
@@ -462,13 +508,7 @@ function drawKingdomFlowers(activeCause) {
       if (val > maxValInRow) maxValInRow = val;
     }
 
-    // --- POSIZIONAMENTO DEL FIORE ---
-    let col = k % 2;
-    let rowIdx = floor(k / 2);
-    let centerX = marginLeft + col * spacingX;
-    let centerY = marginTop + rowIdx * spacingY;
-
-    // --- SE NON CI SONO DATI PER QUESTO REGNO, MOSTRA IL CARTELLINO ---
+    // se non ci sono dati → cartellino
     if (maxValInRow === 0) {
       push();
       translate(centerX, centerY);
@@ -476,20 +516,17 @@ function drawKingdomFlowers(activeCause) {
       let cardW = 240;
       let cardH = 110;
 
-      fill(242, 240, 229); // sfondo carta
-      stroke(TEXT_COLOR + "40"); // bordo tenue
+      fill(242, 240, 229);
+      stroke(TEXT_COLOR + "40");
       strokeWeight(1);
-      rect(-cardW/2, -cardH/2, cardW, cardH, 10);
+      rect(-cardW / 2, -cardH / 2, cardW, cardH, 10);
 
       noStroke();
       fill(TEXT_COLOR);
       textAlign(CENTER, TOP);
-
-      // Nome del regno (titolo)
       textSize(18);
-      text(regno, 0, -cardH/2 + 12);
+      text(regno, 0, -cardH / 2 + 12);
 
-      // Testo descrittivo
       textSize(15);
       textAlign(CENTER, CENTER);
       text(
@@ -499,10 +536,8 @@ function drawKingdomFlowers(activeCause) {
       );
 
       pop();
-      continue; // salta il disegno del fiore
+      continue;
     }
-
-
 
     let baseColor = color(COLORS[regno]);
 
@@ -544,27 +579,26 @@ function drawKingdomFlowers(activeCause) {
             green(baseColor) + p.colorVar[1],
             blue(baseColor) + p.colorVar[2]
           );
-
           c.setAlpha(shouldFade ? p.alpha * 0.3 : p.alpha);
           fill(c);
 
-          let rx = dynamicPetalWidth/2 + p.rxVar;
-          let ry = petalLength/2 + p.ryVar;
+          let rx = dynamicPetalWidth / 2 + p.rxVar;
+          let ry = petalLength / 2 + p.ryVar;
           let baseOffset = centerRadius * 0.6;
           let x = cos(p.angle) * rx;
-          let y = baseOffset + petalLength/2 + sin(p.angle) * ry;
+          let y = baseOffset + petalLength / 2 + sin(p.angle) * ry;
           curveVertex(x, y);
         }
         endShape(CLOSE);
       }
 
-      // Etichetta lettera causa
+      // lettera causa
       push();
-      let baseDist = centerRadius + petalLength + 15;
+      let baseDist = centerRadius + petalLength + 12;
       let stagger = (i % 2 === 0) ? 0 : 12;
       translate(0, baseDist + stagger);
       rotate(-angle);
-      textSize(15);
+      textSize(18);
       textAlign(CENTER, CENTER);
       fill(TEXT_COLOR);
       text(LETTERE_CAUSE[causa], 0, 0);
@@ -575,20 +609,33 @@ function drawKingdomFlowers(activeCause) {
 
     pop();
 
-    // NOME REGNO
+    // ETICHETTA REGNO
     push();
-    textAlign(CENTER, TOP);
-    textFont(customFont);
-    textSize(22);
+    let labelX = centerX + maxPossibleRadius - 30;
+    let labelY = centerY + maxPossibleRadius - 4;
+
+    let bw = textWidth(regno) + 42;
+    let bh = 30;
+
+    fill("#F2F0E5");
+    stroke(TEXT_COLOR + "40");
+    strokeWeight(1);
+    rect(labelX, labelY, bw, bh, 20);
+
+    noStroke();
     fill(TEXT_COLOR);
-    text(regno, centerX, centerY + maxPossibleRadius + 40);
+    textFont(customFont);
+    textSize(18);
+    textAlign(CENTER, CENTER);
+    text(regno, labelX + bw / 2, labelY + bh / 2);
+
     pop();
   }
-}
+} 
 
-
-
-/* 8. INTERAZIONI: HOVER, CLICK, TOOLTIP */
+/* -------------------------------------------------------
+   8. INTERAZIONI: HOVER, CLICK, TOOLTIP
+------------------------------------------------------- */
 
 function mouseMoved() {
 
@@ -623,7 +670,7 @@ function mouseMoved() {
   // --- HOVER SULLA LEGENDA (senza tooltip) ---
   const szLegend = constrain(width * 0.05, 30, 60);
   const xLegend = width * 0.63;
-  const startYLegend = szLegend * 1.2 + szLegend * 1.2 + szLegend * 1.2 + szLegend * 2.0;
+  const startYLegend = szLegend * 1.2 + szLegend * 1.2 + szLegend * 1.2 + szLegend * 2.0 + 40;
   const lineHeightLegend = 34;
 
   let entriesLegend = Object.entries(LETTERE_CAUSE)
@@ -636,7 +683,7 @@ function mouseMoved() {
     if (mouseX > xLegend &&
         mouseY > yLine && mouseY < yLine + lineHeightLegend) {
 
-      hoveredCause = { kingdom: null, cause: causa, value: undefined };  
+      hoveredCause = { kingdom: null, cause: causa, value: undefined };
       cursor(HAND);
       return;
     }
@@ -646,12 +693,10 @@ function mouseMoved() {
   hoveredCause = null;
   let isPointer = false;
 
-  let kingdoms = ["Animalia", "Plantae", "Fungi", "Chromista"];
   let centerRadius = 20;
   let angleStep = TWO_PI / causes.length;
 
-  let marginLeft = 260;
-  let marginTop = 280;
+  // 🔧 valori necessari per i calcoli (mancavano!)
   let spacingX = 420;
   let spacingY = 400;
 
@@ -665,8 +710,8 @@ function mouseMoved() {
   let mx = mouseX;
   let my = mouseY;
 
-  for (let k = 0; k < kingdoms.length; k++) {
-    let regno = kingdoms[k];
+  for (let k = 0; k < KINGDOMS.length; k++) {
+    let regno = KINGDOMS[k];
     let dataset = getDatasetByKingdom(regno);
     let row = getRowByArea(dataset, selectedArea);
     if (!row) continue;
@@ -681,10 +726,8 @@ function mouseMoved() {
     }
     if (maxValInRow === 0) continue;
 
-    let col = k % 2;
-    let rowIdx = floor(k / 2);
-    let centerX = marginLeft + col * spacingX;
-    let centerY = marginTop + rowIdx * spacingY;
+    // ✔ posizione del fiore centralizzata
+    const { x: centerX, y: centerY } = getFlowerCenter(k);
 
     if (dist(mx, my, centerX, centerY) > maxPossibleRadius + 160) continue;
 
@@ -730,36 +773,30 @@ function mouseMoved() {
 
 
 function mousePressed() {
-
+  // Overlay aperto: solo X funziona
   if (clickedCause) {
-    // Solo il pulsante X deve funzionare
     if (overlayCloseBounds &&
         dist(mouseX, mouseY, overlayCloseBounds.x, overlayCloseBounds.y) < overlayCloseBounds.size) {
       clickedCause = null;
     }
     return;
   }
-  
 
-  /* 1) CLICK SUL BOTTONE DEL MENU (APRI/CHIUDI) */
+  // 1) Click sul bottone del menu (apri/chiudi)
   const menuX = menuX_global;
   const menuY = menuY_global;
   const menuW = menuW_global;
   const menuH = menuH_global;
 
-  // Se clicchi sul bottone → toggle SEMPRE, anche se il menu è aperto
   if (mouseX > menuX && mouseX < menuX + menuW &&
       mouseY > menuY && mouseY < menuY + menuH) {
     menuOpen = !menuOpen;
-
     return;
   }
 
-
-  /* 2) SE IL MENU È APERTO → BLOCCA TUTTO IL RESTO */
+  // 2) Se il menu è aperto → blocca tutto il resto
   if (menuOpen) {
-
-    // CLICK SULLE VOCI DEL MENU
+    // Click sulle voci del menu
     for (let i = 0; i < areas.length; i++) {
       const iy = menuY + menuH + i * menuH;
       const ih = menuH;
@@ -773,34 +810,24 @@ function mousePressed() {
       }
     }
 
-    // CLICK FUORI → chiudi menu
+    // Click fuori → chiudi menu
     const menuBottom = menuY + menuH + areas.length * menuH;
     if (!(mouseX > menuX && mouseX < menuX + menuW &&
           mouseY > menuY && mouseY < menuBottom)) {
       menuOpen = false;
     }
 
-    return; // blocca tutto il resto
-  }
-
-
-  /* 3) CLICK SU OVERLAY (CHIUSURA) */
-  if (clickedCause) {
-    if (overlayCloseBounds &&
-        dist(mouseX, mouseY, overlayCloseBounds.x, overlayCloseBounds.y) < overlayCloseBounds.size) {
-      clickedCause = null;
-      return;
-    }
     return;
   }
 
+  // 3) (già gestito sopra: overlay aperto)
 
-  /* 4) CLICK SULLA LEGENDA */
+  // 4) Click sulla legenda
   const szLegend = constrain(width * 0.05, 30, 60);
   const xLegend = width * 0.63;
   const titoloY2Legend = szLegend * 1.2 + szLegend * 1.2;
   const titoloY3Legend = titoloY2Legend + szLegend * 1.2;
-  const startYLegend = titoloY3Legend + szLegend * 2.0;
+  const startYLegend = titoloY3Legend + szLegend * 2.0 + 40;
   const lineHeightLegend = 34;
 
   let entriesLegend = Object.entries(LETTERE_CAUSE)
@@ -817,14 +844,13 @@ function mousePressed() {
     }
   }
 
-
-  /* 5) CLICK SU UN PETALO */
+  // 5) Click su un petalo
   if (hoveredCause) {
     clickedCause = hoveredCause.cause;
     return;
   }
-  
 }
+
 
 function drawTooltip() {
   if (clickedCause) return;
@@ -832,7 +858,6 @@ function drawTooltip() {
 
   // niente tooltip per la legenda
   if (hoveredCause.value === undefined) return;
-  
 
   let lettera = LETTERE_CAUSE[hoveredCause.cause] || "";
   let nomeEsteso = NOMI_CAUSE[hoveredCause.cause] || hoveredCause.cause;
@@ -854,13 +879,13 @@ function drawTooltip() {
 
   fill(TEXT_COLOR);
   textAlign(LEFT, CENTER);
-  text(txt, x + 10, y + h/2);
+  text(txt, x + 10, y + h / 2);
 }
 
 
-
-
-/* 9. OVERLAY DESCRIZIONI */
+/* -------------------------------------------------------
+   9. OVERLAY DESCRIZIONI
+------------------------------------------------------- */
 
 function drawOverlay(causeKey) {
   fill(0, 120);
@@ -877,7 +902,7 @@ function drawOverlay(causeKey) {
   push();
   push();
 
-  // crea path arrotondato per il clipping
+  // path arrotondato per il clipping
   drawingContext.save();
   drawingContext.beginPath();
   drawingContext.moveTo(boxLeft + 12, boxTop);
@@ -891,15 +916,12 @@ function drawOverlay(causeKey) {
   drawingContext.quadraticCurveTo(boxLeft, boxTop, boxLeft + 12, boxTop);
   drawingContext.closePath();
   drawingContext.clip();
-  
-  // disegna l’immagine dentro il clipping arrotondato
+
+  // immagine di sfondo
   image(sfondo_overlay, boxLeft, boxTop, w, h);
-  
-  // ripristina contesto
+
   drawingContext.restore();
-  
   pop();
-  
 
   let titolo = NOMI_CAUSE[causeKey] || causeKey;
   let descrizione = DESCRIZIONI_CAUSE[causeKey] || "Descrizione non disponibile.";
@@ -916,21 +938,21 @@ function drawOverlay(causeKey) {
   textAlign(LEFT, TOP);
   text(descrizione, boxLeft + 30, boxTop + 70, w - 60, h - 100);
 
-  // --- X per chiudere, più piccola e marrone ---
-  const btnSize = 12;  // prima era 20
+  // X per chiudere
+  const btnSize = 12;
   const closeCx = boxLeft + w - 22;
   const closeCy = boxTop + 22;
 
   stroke(TEXT_COLOR);
-  strokeWeight(1.6);   // più fine e più elegante
+  strokeWeight(1.6);
 
-  line(closeCx - btnSize/2, closeCy - btnSize/2,
-      closeCx + btnSize/2, closeCy + btnSize/2);
+  line(closeCx - btnSize / 2, closeCy - btnSize / 2,
+       closeCx + btnSize / 2, closeCy + btnSize / 2);
 
-  line(closeCx + btnSize/2, closeCy - btnSize/2,
-      closeCx - btnSize/2, closeCy + btnSize/2);
+  line(closeCx + btnSize / 2, closeCy - btnSize / 2,
+       closeCx - btnSize / 2, closeCy + btnSize / 2);
 
   pop();
 
-  overlayCloseBounds = {x: closeCx, y: closeCy, size: btnSize};
+  overlayCloseBounds = { x: closeCx, y: closeCy, size: btnSize };
 }
