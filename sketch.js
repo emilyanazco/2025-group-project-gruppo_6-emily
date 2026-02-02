@@ -424,16 +424,16 @@ function drawHeader() {
   menuH_global = menuH;
   menuSz_global = sz;
 
-  // Micronota sotto il titolo
+  // box informativo sotto il titolo
   const notaY = titoloY3 + menuH + 22;
   const notaW = 470;
   const notaH = 120;
 
   push();
-  fill(242, 240, 229);
-  stroke(TEXT_COLOR + "40");
+  stroke(TEXT_COLOR);
   strokeWeight(1);
-  rect(x, notaY, notaW, notaH, 10);
+  fill(255, 240);
+  rect(x, notaY, notaW, notaH, 10);  
 
   noStroke();
   fill(TEXT_COLOR);
@@ -562,11 +562,11 @@ function drawKingdomFlowers(activeCause) {
       let cardW = 240;
       let cardH = 110;
 
-      fill(242, 240, 229);
-      stroke(TEXT_COLOR + "40");
+      stroke(TEXT_COLOR);
       strokeWeight(1);
+      fill(255, 240);
       rect(-cardW / 2, -cardH / 2, cardW, cardH, 10);
-
+      
       noStroke();
       fill(TEXT_COLOR);
       textAlign(CENTER, TOP);
@@ -663,11 +663,11 @@ function drawKingdomFlowers(activeCause) {
     let bw = textWidth(regno) + 42;
     let bh = 30;
 
-    fill("#F2F0E5");
-    stroke(TEXT_COLOR + "40");
+    stroke(TEXT_COLOR);
     strokeWeight(1);
+    fill(255, 240);
     rect(labelX, labelY, bw, bh, 20);
-
+    
     noStroke();
     fill(TEXT_COLOR);
     textFont(customFont);
@@ -910,7 +910,7 @@ function drawTooltip() {
   let nomeEsteso = NOMI_CAUSE[hoveredCause.cause] || hoveredCause.cause;
   let txt = `${lettera} - ${nomeEsteso}: ${hoveredCause.value} specie`;
 
-  textSize(16); 
+  textSize(18); 
   let padding = 12;
   let w = textWidth(txt) + padding * 2;
   let h = 38;
