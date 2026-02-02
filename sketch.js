@@ -302,7 +302,10 @@ function draw() {
   drawLegend(activeCause);
   drawKingdomFlowers(activeCause);
 
-  if (clickedCause) drawOverlay(clickedCause);
+  if (clickedCause && selectedAreaOriginal !== "Totale") {
+    drawOverlay(clickedCause);
+  }
+
   if (!clickedCause) drawTooltip();
 
   if (menuOpen) {
@@ -524,10 +527,10 @@ function drawKingdomFlowers(activeCause) {
       noStroke();
       fill(TEXT_COLOR);
       textAlign(CENTER, TOP);
-      textSize(18);
+      textSize(26);
       text(regno, 0, -cardH / 2 + 12);
 
-      textSize(15);
+      textSize(18);
       textAlign(CENTER, CENTER);
       text(
         "Non è stata ancora analizzata\nnessuna specie a rischio\nin quest'area geografica",
@@ -825,9 +828,7 @@ function mousePressed() {
   // 4) Click sulla legenda
   const szLegend = constrain(width * 0.05, 30, 60);
   const xLegend = width * 0.63;
-  const titoloY2Legend = szLegend * 1.2 + szLegend * 1.2;
-  const titoloY3Legend = titoloY2Legend + szLegend * 1.2;
-  const startYLegend = titoloY3Legend + szLegend * 2.0 + 40;
+  const startYLegend = szLegend * 1.2 + szLegend * 1.2 + szLegend * 1.2 + szLegend * 2.0 + 40;
   const lineHeightLegend = 34;
 
   let entriesLegend = Object.entries(LETTERE_CAUSE)
@@ -839,16 +840,21 @@ function mousePressed() {
 
     if (mouseX > xLegend &&
         mouseY > yLine && mouseY < yLine + lineHeightLegend) {
-      clickedCause = causa;
+
+      if (selectedAreaOriginal !== "Totale") {
+        clickedCause = causa;
+      }
+
       return;
     }
   }
 
   // 5) Click su un petalo
-  if (hoveredCause) {
-    clickedCause = hoveredCause.cause;
-    return;
-  }
+if (hoveredCause && selectedAreaOriginal !== "Totale") {
+  clickedCause = hoveredCause.cause;
+}
+return;
+
 }
 
 
@@ -934,7 +940,7 @@ function drawOverlay(causeKey) {
   text(titolo, popX, boxTop + 20);
 
   textStyle(NORMAL);
-  textSize(16);
+  textSize(20);
   textAlign(LEFT, TOP);
   text(descrizione, boxLeft + 30, boxTop + 70, w - 60, h - 100);
 
