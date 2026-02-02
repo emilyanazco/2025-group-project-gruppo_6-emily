@@ -1,3 +1,7 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
 :root {
   --text: #4f4838;
 }
@@ -33,11 +37,11 @@ canvas {
   margin: 0 auto;
 }
 
-/* Navbar */
+/* STILE DELLA NAVBAR (Uniformato ad About e Visione d'Insieme) */
 .navbar {
-  background-color: #F2F0E5; 
+  background-color: #e2d9cd; /* CAMBIATO: da #F2F0E5 a #e2d9cd */
   width: 100%;
-  padding: 18px clamp(10px, 4vw, 48px); 
+  padding: 18px clamp(15px, 4vw, 48px); 
   position: sticky; 
   top: 0;
   z-index: 1000;
@@ -64,7 +68,7 @@ canvas {
 .nav-item a {
   text-decoration: none;
   color: var(--text);
-  font-weight: 500;
+  font-weight: 700; /* CAMBIATO: da 500 a 700 (Bold) */
   font-size: 1.3rem; 
   transition: color 0.2s ease;
   font-family: "cormorant-garamond", serif;
@@ -115,4 +119,6 @@ canvas {
 .menu, .menu-item, .back-btn, .nav-item a {
   cursor: pointer; /* mano sopra elementi cliccabili */
 }
+
+
 

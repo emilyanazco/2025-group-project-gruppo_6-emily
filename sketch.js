@@ -73,15 +73,15 @@ const NOMI_CAUSE = {
 const DESCRIZIONI_CAUSE = {
   "agriculture and aquaculture": "L'impatto maggiore sulla biodiversità deriva dall'espansione e dell'intensificazione dell'agricoltura e acquacoltura, che interessa circa il 46,5% delle specie minacciate. Questa minaccia è guidata principalmente dalla conversione degli habitat naturali per le colture, il pascolo del bestiame e, in misura minore, lo sviluppo dell'acquacoltura, causando una perdita di habitat su vasta scala.",
   "biological resource use": "L'uso insostenibile delle risorse biologiche, come la raccolta eccessiva o la caccia, colpisce circa il 39,6% delle specie. La componente più significativa è il taglio e la raccolta di legname, spesso non sostenibile, seguito dalla pesca e dalla raccolta di risorse acquatiche, e dalla caccia e cattura non regolamentata di animali terrestri e piante.",
-  "climate change and severe weather": "L'espansione dell'urbanizzazione e delle infrastrutture umane, raggruppata nello sviluppo residenziale e commerciale, minaccia circa il 24,5% delle specie. Questa categoria include la crescita delle aree urbane, industriali e turistiche, che provoca la distruzione diretta e la frammentazione degli ecosistemi.",
-  "energy production and mining": "La produzione di energia e l'attività mineraria minacciano circa il 13,1% delle specie. Le attività di estrazione mineraria e le cave sono la componente più impattante, causando la distruzione fisica dell'habitat, seguite dalle trivellazioni di petrolio e gas e dalle infrastrutture per le energie rinnovabili.",
+  "climate change and severe weather": "Il cambiamento climatico e l'inasprimento dei fenomeni meteorologici estremi, manifestati in siccità e ondate di calore, minacciano circa il 12% delle specie. Questa categoria include l'alterazione dei regimi termici e idrici, che provoca lo stress fisiologico e la perdita degli habitat naturali critici.",
+  "energy production and mining": "La produzione di energia e l'attività mineraria minacciano circa il 13,1% delle specie. Le attività di estrazione mineraria e le cave sono la componente più impattante, poichè causano la distruzione fisica dell'habitat, seguite dalle trivellazioni di petrolio e gas e dalle infrastrutture per le energie rinnovabili.",
   "human intrusions and disturbance": "Questa minaccia, che incide su circa il 5,7% delle specie, si riferisce al disturbo diretto causato principalmente dalle attività ricreative non regolamentate. Altri fattori, sebbene minori, includono i conflitti (guerre e disordini civili) che destabilizzano gli ecosistemi.",
   "invasive and other problematic species, genes and diseases": "L'introduzione di specie invasive non native, malattie e altro materiale genetico problematico minaccia circa il 14,5% delle specie. Le specie aliene invasive sono il problema predominante; possono agire come predatori, concorrenti o vettori di malattie, portando al rapido declino delle specie native.",
-  "natural system modifications": "Questa categoriaQuesta categoria rappresenta le alterazioni su larga scala degli ecosistemi, impattando circa il 22,1% delle specie. Le principali cause sono gli incendi (la cui frequenza e intensità sono spesso alterate dall'uomo) e la gestione idrica tramite la costruzione di dighe e la deviazione dei corsi d'acqua, che sconvolgono gli habitat acquatici e terrestri. rappresenta le alterazioni ...",
-  "pollution": "L'inquinamento danneggia circa il 13,5% delle specie. Sebbene l'inquinamento da effluenti agricoli e forestali (come i fertilizzanti in eccesso) sia spesso la componente più diffusa, anche gli scarichi industriali, i rifiuti solidi e l'inquinamento atmosferico contribuiscono significativamente alla contaminazione degli habitat.",
-  "residential and commericial development": "L'espansione dell'urbanizzazione e delle infrastrutture umane, raggruppata nello sviluppo residenziale e commerciale, minaccia circa il 24,5% delle specie. Questa categoria include la crescita delle aree urbane, industriali e turistiche, che provoca la distruzione diretta e la frammentazione degli ecosistemi.",
-  "transportation and service corridors": "Lo sviluppo di corridoi di trasporto e servizi minaccia circa l'8,1% delle specie. Questo impatto è dominato dalla costruzione di strade e ferrovie, che oltre a distruggere l'habitat, creano barriere fisiche e aumentano la mortalità degli animali.",
-  "geological events": "Gli eventi geologici che minacciano circa l'1,1% delle specie sono perlopiù fenomeni naturali, come frane, valanghe ed eruzioni vulcaniche. Tuttavia, l'impatto sulle specie è spesso esacerbato quando gli habitat sono già stressati da altre minacce antropiche.",
+  "natural system modifications": "Questa categoria rappresenta le alterazioni su larga scala degli ecosistemi, che minacciano il 22,1% delle specie. Le principali cause sono gli incendi (la cui frequenza e intensità sono spesso alterate dall'uomo), la gestione idrica tramite la costruzione di dighe e la deviazione dei corsi d'acqua, che sconvolgono gli habitat acquatici e terrestri.",
+  "pollution": "L'inquinamento danneggia circa il 13,5% delle specie totali. Sebbene l'inquinamento da effluenti agricoli e forestali (come i fertilizzanti in eccesso) sia spesso la componente più diffusa, anche gli scarichi industriali, i rifiuti solidi e l'inquinamento atmosferico contribuiscono significativamente alla contaminazione degli habitat.",
+  "residential and commericial development": "L'espansione dell'urbanizzazione e delle infrastrutture umane, raggruppata nello sviluppo residenziale e commerciale, minaccia circa il 24,5% delle specie totali. Questa categoria include la crescita delle aree urbane, industriali e turistiche, che provoca la distruzione diretta e la frammentazione degli ecosistemi.",
+  "transportation and service corridors": "Lo sviluppo di corridoi di trasporto e servizi minaccia circa l'8,1% delle specie totali. Questo impatto è dominato dalla costruzione di strade e ferrovie, che oltre a distruggere l'habitat, creano barriere fisiche e aumentano la mortalità degli animali.",
+  "geological events": "Gli eventi geologici che minacciano circa l'1,1% delle specie sono perlopiù fenomeni naturali, come frane, valanghe ed eruzioni vulcaniche. Tuttavia, l'impatto sulle specie è spesso esasperato quando gli habitat sono già stressati da altre minacce antropiche.",
   "other/unknown": "Questa categoria raccoglie le minacce che non sono state ancora identificate con precisione o per le quali mancano dati sufficienti."
 };
 
@@ -192,8 +192,34 @@ function preload() {
 ------------------------------------------------------- */
 
 function setup() {
-  const areaFromURL = getAreaFromURL();
-  if (areaFromURL) selectedArea = normalizeAreaName(areaFromURL);
+  const params = new URLSearchParams(window.location.search);
+  const slugCercato = params.get("area"); // es. "nord-america"
+
+  if (slugCercato) {
+    let trovata = false;
+    // Scorriamo la tabella delle aree per trovare quella che corrisponde allo slug
+    for (let r = 0; r < data_aree.getRowCount(); r++) {
+       let nomeOriginale = data_aree.getString(r, 0);
+       
+       if (!nomeOriginale) continue;
+
+       // Generiamo lo slug con la STESSA formula usata nella Home
+       let slugGenerato = nomeOriginale.toLowerCase().trim().replace(/\s+/g, "-");
+
+       if (slugGenerato === slugCercato) {
+         // Corrispondenza trovata! Aggiorniamo le variabili globali
+         selectedAreaOriginal = nomeOriginale; // Aggiorna il titolo visibile nel menu
+         selectedArea = normalizeAreaName(nomeOriginale); // Aggiorna il filtro per i dati
+         trovata = true;
+         break; // Smettiamo di cercare
+       }
+    }
+    
+    if (!trovata) {
+      console.warn("Attenzione: Nessuna area trovata nel CSV per lo slug: " + slugCercato);
+    }
+  }
+
 
   // Rimuove la riga "Totale" da tutti i dataset
   function removeTotalRow(table) {
@@ -210,6 +236,20 @@ function setup() {
   removeTotalRow(data_piante);
   removeTotalRow(data_funghi);
   removeTotalRow(data_cromisti);
+
+  function removeTotalColumn(table) {
+    const cols = table.columns;
+    for (let i = cols.length - 1; i >= 0; i--) {
+      if (normalizeCause(cols[i]) === "total") {
+        table.removeColumn(i);
+      }
+    }
+  }
+
+  removeTotalColumn(data_animali);
+  removeTotalColumn(data_piante);
+  removeTotalColumn(data_funghi);
+  removeTotalColumn(data_cromisti);
 
   // Layout verticale
   let marginTop = 280;
@@ -230,7 +270,10 @@ function setup() {
   }
 
   // Lista cause normalizzate
-  causes = data_animali.columns.slice(1).map(normalizeCause);
+  causes = data_animali.columns
+    .slice(1)
+    .map(normalizeCause)
+    .filter(c => c !== "total");
 
   // Mappa cause → colonne reali per ogni regno
   causeMap = {
@@ -383,8 +426,8 @@ function drawHeader() {
 
   // Micronota sotto il titolo
   const notaY = titoloY3 + menuH + 22;
-  const notaW = 480;
-  const notaH = 70;
+  const notaW = 470;
+  const notaH = 120;
 
   push();
   fill(242, 240, 229);
@@ -397,7 +440,7 @@ function drawHeader() {
   textAlign(LEFT, TOP);
   textSize(sz * 0.32);
   text(
-    "Ogni fiore mostra un regno biologico: la lunghezza dei petali\nindica quante specie sono minacciate per ciascuna causa.",
+    "Ogni fiore rappresenta un regno biologico, dove la \nlunghezza dei petali indica quante specie sono minacciate \nda ciascuna causa. I dati sono normalizzati in modo da \nevidenziare i fattori di rischio maggiori per ciascun gruppo.",
     x + 14,
     notaY + 12
   );
@@ -443,7 +486,7 @@ function drawLegend(activeCause) {
 
   const sz = constrain(width * 0.05, 30, 60);
   const x = width * 0.63;
-  const startY = sz * 1.2 + sz * 1.2 + sz * 1.2 + sz * 2.0 + 40;
+  const startY = sz * 1.2 + sz * 1.2 + sz * 1.2 + sz * 2.0 + 40 + 30;
   const lineHeight = 34;
 
   let entries = Object.entries(LETTERE_CAUSE)
@@ -673,7 +716,7 @@ function mouseMoved() {
   // --- HOVER SULLA LEGENDA (senza tooltip) ---
   const szLegend = constrain(width * 0.05, 30, 60);
   const xLegend = width * 0.63;
-  const startYLegend = szLegend * 1.2 + szLegend * 1.2 + szLegend * 1.2 + szLegend * 2.0 + 40;
+  const startYLegend = szLegend * 1.2 + szLegend * 1.2 + szLegend * 1.2 + szLegend * 2.0 + 40 + 30;
   const lineHeightLegend = 34;
 
   let entriesLegend = Object.entries(LETTERE_CAUSE)
@@ -857,21 +900,20 @@ return;
 
 }
 
-
 function drawTooltip() {
   if (clickedCause) return;
   if (!hoveredCause) return;
 
-  // niente tooltip per la legenda
   if (hoveredCause.value === undefined) return;
 
   let lettera = LETTERE_CAUSE[hoveredCause.cause] || "";
   let nomeEsteso = NOMI_CAUSE[hoveredCause.cause] || hoveredCause.cause;
   let txt = `${lettera} - ${nomeEsteso}: ${hoveredCause.value} specie`;
 
-  textSize(14);
-  let w = textWidth(txt) + 20;
-  let h = 30;
+  textSize(16); 
+  let padding = 12;
+  let w = textWidth(txt) + padding * 2;
+  let h = 38;
 
   let x = mouseX + 15;
   let y = mouseY + 15;
@@ -879,15 +921,18 @@ function drawTooltip() {
   if (x + w > width) x = mouseX - w - 10;
   if (y + h > height) y = mouseY - h - 10;
 
+  // sfondo + bordo
+  stroke(TEXT_COLOR);
+  strokeWeight(1);
   fill(255);
-  noStroke();
-  rect(x, y, w, h, 5);
+  rect(x, y, w, h, 6);
 
+  // testo
+  noStroke();
   fill(TEXT_COLOR);
   textAlign(LEFT, CENTER);
-  text(txt, x + 10, y + h / 2);
+  text(txt, x + padding, y + h / 2);
 }
-
 
 /* -------------------------------------------------------
    9. OVERLAY DESCRIZIONI
