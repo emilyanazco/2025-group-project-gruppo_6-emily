@@ -461,12 +461,48 @@ function drawKingdomFlowers(activeCause) {
       let val = int(row.get(realCol) || 0);
       if (val > maxValInRow) maxValInRow = val;
     }
-    if (maxValInRow === 0) maxValInRow = 1;
 
+    // --- POSIZIONAMENTO DEL FIORE ---
     let col = k % 2;
     let rowIdx = floor(k / 2);
     let centerX = marginLeft + col * spacingX;
     let centerY = marginTop + rowIdx * spacingY;
+
+    // --- SE NON CI SONO DATI PER QUESTO REGNO, MOSTRA IL CARTELLINO ---
+    if (maxValInRow === 0) {
+      push();
+      translate(centerX, centerY);
+
+      let cardW = 240;
+      let cardH = 110;
+
+      fill(242, 240, 229); // sfondo carta
+      stroke(TEXT_COLOR + "40"); // bordo tenue
+      strokeWeight(1);
+      rect(-cardW/2, -cardH/2, cardW, cardH, 10);
+
+      noStroke();
+      fill(TEXT_COLOR);
+      textAlign(CENTER, TOP);
+
+      // Nome del regno (titolo)
+      textSize(18);
+      text(regno, 0, -cardH/2 + 12);
+
+      // Testo descrittivo
+      textSize(15);
+      textAlign(CENTER, CENTER);
+      text(
+        "Non è stata ancora analizzata\nnessuna specie a rischio\nin quest'area geografica",
+        0,
+        12
+      );
+
+      pop();
+      continue; // salta il disegno del fiore
+    }
+
+
 
     let baseColor = color(COLORS[regno]);
 
@@ -555,53 +591,58 @@ function drawKingdomFlowers(activeCause) {
 /* 8. INTERAZIONI: HOVER, CLICK, TOOLTIP */
 
 function mouseMoved() {
-    // --- POINTER SULLA X DELL’OVERLAY (PRIMA DI BLOCCARE TUTTO) ---
-    if (clickedCause && overlayCloseBounds) {
-      if (dist(mouseX, mouseY, overlayCloseBounds.x, overlayCloseBounds.y) < overlayCloseBounds.size) {
-        cursor(HAND);
-        return;
-      }
-    }
-  
-    // Se overlay aperto → blocca tutto l’hover (ma dopo aver gestito la X)
-    if (clickedCause) {
-      cursor(ARROW);
-      return;
-    }
-  
-    // --- POINTER SULLA CASELLA MENU ---
-    if (mouseX > menuX_global && mouseX < menuX_global + menuW_global &&
-        mouseY > menuY_global && mouseY < menuY_global + menuH_global) {
+
+  // --- POINTER SULLA X DELL’OVERLAY ---
+  if (clickedCause && overlayCloseBounds) {
+    if (dist(mouseX, mouseY, overlayCloseBounds.x, overlayCloseBounds.y) < overlayCloseBounds.size) {
       cursor(HAND);
       return;
     }
-  
-    // --- HOVER SULLA LEGENDA ---
-    const szLegend = constrain(width * 0.05, 30, 60);
-    const xLegend = width * 0.63;
-    const titoloY2Legend = szLegend * 1.2 + szLegend * 1.2;
-    const titoloY3Legend = titoloY2Legend + szLegend * 1.2;
-    const startYLegend = titoloY3Legend + szLegend * 2.0;
-    const lineHeightLegend = 34;
+  }
 
-    let entriesLegend = Object.entries(LETTERE_CAUSE)
-      .sort((a, b) => a[1].localeCompare(b[1]));
+  // --- SE OVERLAY APERTO → blocca tutto ---
+  if (clickedCause) {
+    cursor(ARROW);
+    return;
+  }
 
-    for (let i = 0; i < entriesLegend.length; i++) {
-      const causa = entriesLegend[i][0];
-      const yLine = startYLegend + i * lineHeightLegend;
+  // --- SE MENU APERTO → blocca TUTTO l’hover ---
+  if (menuOpen) {
+    hoveredCause = null;
+    cursor(ARROW);
+    return;
+  }
 
-  if (mouseX > xLegend &&
-      mouseY > yLine && mouseY < yLine + lineHeightLegend) {
-
-    hoveredCause = null;   // niente tooltip dalla legenda
-
+  // --- POINTER SULLA CASELLA MENU ---
+  if (mouseX > menuX_global && mouseX < menuX_global + menuW_global &&
+      mouseY > menuY_global && mouseY < menuY_global + menuH_global) {
     cursor(HAND);
     return;
   }
-}
 
+  // --- HOVER SULLA LEGENDA (senza tooltip) ---
+  const szLegend = constrain(width * 0.05, 30, 60);
+  const xLegend = width * 0.63;
+  const startYLegend = szLegend * 1.2 + szLegend * 1.2 + szLegend * 1.2 + szLegend * 2.0;
+  const lineHeightLegend = 34;
 
+  let entriesLegend = Object.entries(LETTERE_CAUSE)
+    .sort((a, b) => a[1].localeCompare(b[1]));
+
+  for (let i = 0; i < entriesLegend.length; i++) {
+    const causa = entriesLegend[i][0];
+    const yLine = startYLegend + i * lineHeightLegend;
+
+    if (mouseX > xLegend &&
+        mouseY > yLine && mouseY < yLine + lineHeightLegend) {
+
+      hoveredCause = { kingdom: null, cause: causa, value: undefined };  
+      cursor(HAND);
+      return;
+    }
+  }
+
+  // --- HOVER SUI PETALI ---
   hoveredCause = null;
   let isPointer = false;
 
@@ -638,7 +679,7 @@ function mouseMoved() {
       let val = raw ? int(raw) : 0;
       if (val > maxValInRow) maxValInRow = val;
     }
-    if (maxValInRow === 0) maxValInRow = 1;
+    if (maxValInRow === 0) continue;
 
     let col = k % 2;
     let rowIdx = floor(k / 2);
@@ -686,6 +727,7 @@ function mouseMoved() {
 
   cursor(isPointer ? HAND : ARROW);
 }
+
 
 function mousePressed() {
 
@@ -787,6 +829,10 @@ function mousePressed() {
 function drawTooltip() {
   if (clickedCause) return;
   if (!hoveredCause) return;
+
+  // niente tooltip per la legenda
+  if (hoveredCause.value === undefined) return;
+  
 
   let lettera = LETTERE_CAUSE[hoveredCause.cause] || "";
   let nomeEsteso = NOMI_CAUSE[hoveredCause.cause] || hoveredCause.cause;
